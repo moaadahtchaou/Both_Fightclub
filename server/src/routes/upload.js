@@ -4,30 +4,11 @@ const multer = require('multer');
 const FormData = require('form-data');
 const axios = require('axios');
 const fs = require('fs');
-const os = require('os');
-const path = require('path');
 
-// Use the OS temporary directory for uploads (Vercel allows writing to /tmp only)
-const tmpUploadDir = path.join(os.tmpdir(), 'uploads');
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    try {
-      fs.mkdirSync(tmpUploadDir, { recursive: true });
-    } catch (e) {
-      // If directory creation fails, bubble up the error
-      return cb(e);
-    }
-    cb(null, tmpUploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const safeOriginal = file.originalname.replace(/\s+/g, '_');
-    cb(null, uniqueSuffix + '-' + safeOriginal);
-  }
+// Use in-memory storage to avoid any filesystem writes on serverless platforms
+const upload = multer({
+  storage: multer.memoryStorage(),
 });
-
-const upload = multer({ storage });
 
 router.post('/', upload.single('fileToUpload'), async (req, res) => {
   if (!req.file) {
@@ -35,15 +16,21 @@ router.post('/', upload.single('fileToUpload'), async (req, res) => {
     return res.status(400).send('No file uploaded.');
   }
 
-  console.log('File uploaded:', req.file);
-
-  const filePath = req.file.path;
+  console.log('File received (in-memory):', {
+    originalname: req.file.originalname,
+    mimetype: req.file.mimetype,
+    size: req.file.size,
+  });
 
   try {
     const form = new FormData();
     form.append('reqtype', 'fileupload');
-    form.append('fileToUpload', fs.createReadStream(filePath), req.file.originalname);
-    console.log('Form data: ', form);
+    // Append the in-memory buffer directly
+    form.append('fileToUpload', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+
     const response = await axios.post('https://catbox.moe/user/api.php', form, {
       headers: {
         ...form.getHeaders(),
@@ -62,25 +49,21 @@ router.post('/', upload.single('fileToUpload'), async (req, res) => {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36',
         'X-Requested-With': 'XMLHttpRequest',
       },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
     });
+
     console.log('Upload response:', response.data);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath); // Clean up the uploaded file
-    }
 
     if (response.status === 200) {
       console.log('Upload successful:', response.data);
       res.send(response.data);
-
     } else {
       console.log(response.status, response.statusText);
       res.status(response.status).send(response.statusText);
     }
   } catch (error) {
-    if (fs.existsSync(filePath)) {
-      try { fs.unlinkSync(filePath); } catch (_) {}
-    }
-    console.error('Error uploading to Catbox:', error);
+    console.error('Error uploading to Catbox:', error?.response?.data || error.message || error);
     res.status(500).send('Error uploading to Catbox.');
   }
 });
