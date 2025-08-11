@@ -3,11 +3,21 @@ const router = express.Router();
 const multer = require('multer');
 const FormData = require('form-data');
 const axios = require('axios');
-const fs = require('fs');
 
-// Use in-memory storage to avoid any filesystem writes on serverless platforms
+// SERVERLESS-SAFE: Configure multer with explicit memory storage only
+// This prevents any filesystem operations that would fail on Vercel
+const storage = multer.memoryStorage();
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  // Explicitly disable any file system operations
+  fileFilter: (req, file, cb) => {
+    // Accept all files but ensure they go to memory only
+    cb(null, true);
+  }
 });
 
 router.post('/', upload.single('fileToUpload'), async (req, res) => {
