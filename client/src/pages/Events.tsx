@@ -234,7 +234,7 @@ const Events = () => {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {Object.entries(eventTypes).map(([type, config], index) => (
+            {Object.entries(eventTypes).map(([type, config]) => (
               <div key={type} className="card text-center group hover:scale-105 transition-all duration-300">
                 <div className={`w-16 h-16 ${config.color} rounded-xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform`}>
                   <span className="text-2xl">{config.icon}</span>
