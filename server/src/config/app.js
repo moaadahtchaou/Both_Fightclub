@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const corsMiddleware = require('../middleware/cors');
 const uploadRouter = require('../routes/upload');
 const usersRouter = require('../routes/users');
@@ -11,10 +12,19 @@ const createApp = () => {
   app.use(corsMiddleware);
   app.use(express.json());
 
-  // Routes
-  app.get('/', (req, res) => {
+  // Serve static files from client build
+  const clientBuildPath = path.join(__dirname, '../../../client/dist');
+  app.use(express.static(clientBuildPath));
+
+  // API Routes
+  app.use('/download', downloadRouter);
+  app.use('/upload', uploadRouter);
+  app.use('/api/users', usersRouter);
+
+  // API health check
+  app.get('/api/health', (req, res) => {
     res.json({ 
-      message: 'Welcome to the Fight Club API',
+      message: 'Fight Club API is running',
       version: '1.0.0',
       endpoints: {
         download: '/download',
@@ -24,13 +34,15 @@ const createApp = () => {
     });
   });
 
-  app.use('/download', downloadRouter);
-  app.use('/upload', uploadRouter);
-  app.use('/api/users', usersRouter);
-
-  // 404 handler
-  app.use('*', (req, res) => {
-    res.status(404).json({ error: 'Route not found' });
+  // Serve React app for all non-API routes (client-side routing)
+  app.get('*', (req, res) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/') || req.path.startsWith('/download') || req.path.startsWith('/upload')) {
+      return res.status(404).json({ error: 'API route not found' });
+    }
+    
+    // Serve React app
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 
   // Error handler
