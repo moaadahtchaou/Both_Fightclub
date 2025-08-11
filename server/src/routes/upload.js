@@ -4,8 +4,30 @@ const multer = require('multer');
 const FormData = require('form-data');
 const axios = require('axios');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
-const upload = multer({ dest: 'uploads/' });
+// Use the OS temporary directory for uploads (Vercel allows writing to /tmp only)
+const tmpUploadDir = path.join(os.tmpdir(), 'uploads');
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    try {
+      fs.mkdirSync(tmpUploadDir, { recursive: true });
+    } catch (e) {
+      // If directory creation fails, bubble up the error
+      return cb(e);
+    }
+    cb(null, tmpUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const safeOriginal = file.originalname.replace(/\s+/g, '_');
+    cb(null, uniqueSuffix + '-' + safeOriginal);
+  }
+});
+
+const upload = multer({ storage });
 
 router.post('/', upload.single('fileToUpload'), async (req, res) => {
   if (!req.file) {
@@ -42,7 +64,9 @@ router.post('/', upload.single('fileToUpload'), async (req, res) => {
       },
     });
     console.log('Upload response:', response.data);
-    fs.unlinkSync(filePath); // Clean up the uploaded file
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath); // Clean up the uploaded file
+    }
 
     if (response.status === 200) {
       console.log('Upload successful:', response.data);
@@ -53,7 +77,9 @@ router.post('/', upload.single('fileToUpload'), async (req, res) => {
       res.status(response.status).send(response.statusText);
     }
   } catch (error) {
-    fs.unlinkSync(filePath); // Clean up the uploaded file
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (_) {}
+    }
     console.error('Error uploading to Catbox:', error);
     res.status(500).send('Error uploading to Catbox.');
   }
