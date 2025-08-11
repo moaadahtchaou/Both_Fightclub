@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "init-admin": "node initializeAdmin.js"
+    "build": "echo 'No build step required'",
+    "init-admin": "node initializeAdmin.js",
+    "vercel-build": "echo 'Build completed'"
   },
   "keywords": [],
   "author": "",

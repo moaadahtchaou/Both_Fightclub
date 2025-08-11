@@ -15,24 +15,29 @@ class InitializationService {
     try {
       console.log('🔄 Attempting to connect to database...');
       
-      // Set a timeout for database connection
+      // Check if we have MongoDB URI configured
+      const mongoUri = process.env.MONGODB_URI || process.env.MONGODB_ATLAS_URI;
+      if (!mongoUri || mongoUri.includes('localhost')) {
+        console.log('⚠️  No production MongoDB URI found, using in-memory storage');
+        await this.initializeMemoryStorage();
+        return;
+      }
+      
+      // Set a shorter timeout for serverless environment
       const dbPromise = connectDB();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database connection timeout')), 5000)
+        setTimeout(() => reject(new Error('Database connection timeout')), 3000)
       );
       
       await Promise.race([dbPromise, timeoutPromise]);
       console.log('✅ Database connected successfully');
       
-      // Wait a moment for connection to stabilize
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       await this.createAdminUser();
       
     } catch (error) {
       console.error('❌ Database initialization error:', error.message);
-      console.log('⚠️  Switching to in-memory storage for testing');
-      console.log('💡 Make sure MongoDB is running on mongodb://localhost:27017 for persistent storage');
+      console.log('⚠️  Switching to in-memory storage for serverless deployment');
+      console.log('💡 Set MONGODB_ATLAS_URI environment variable for persistent storage');
       
       await this.initializeMemoryStorage();
     }

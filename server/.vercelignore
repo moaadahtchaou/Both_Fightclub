@@ -1,0 +1,34 @@
+# Development files
+.env
+.env.local
+.env.example
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local development
+server.js
+initializeAdmin.js
+createAdmin.js
+
+# Documentation
+*.md
+!VERCEL_DEPLOYMENT_GUIDE.md
+
+# Uploads directory (not needed in serverless)
+uploads/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore

@@ -5,9 +5,15 @@ const connectDB = async () => {
     // Use environment variable for MongoDB URI
     const mongoUri = process.env.MONGODB_URI || process.env.MONGODB_ATLAS_URI || 'mongodb://localhost:27017/fightclub';
     
+    // Optimized settings for serverless deployment
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-      socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+      serverSelectionTimeoutMS: 3000, // Shorter timeout for serverless
+      socketTimeoutMS: 30000, // Shorter socket timeout
+      maxPoolSize: 5, // Limit connection pool for serverless
+      minPoolSize: 0, // Allow connections to scale down to 0
+      maxIdleTimeMS: 30000, // Close connections after 30s of inactivity
+      bufferCommands: false, // Disable mongoose buffering
+      bufferMaxEntries: 0 // Disable mongoose buffering
     });
     
     console.log('✅ MongoDB connected successfully');
