@@ -21,8 +21,12 @@ app.use('/download', downloadYT);
 app.use('/upload', upload);
 
 
-const PORT = process.env.PORT || 3000;
+// const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
+
+// ❌ remove app.listen()
+// ✅ instead, export the app as a handler
+module.exports = app;
