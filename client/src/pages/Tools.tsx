@@ -27,8 +27,24 @@ const Tools = () => {
     setDownloadStatus('Processing your request...');
 
     try {
-      // Make a direct request to the backend server to download the YouTube video as MP3
-      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.DOWNLOAD)}?url=${encodeURIComponent(youtubeUrl)}&type=audio`, {
+      const base = `${buildApiUrl(API_ENDPOINTS.DOWNLOAD)}?url=${encodeURIComponent(youtubeUrl)}&type=audio`;
+      const apiUrl = import.meta.env.PROD ? `${base}&mode=redirect` : base;
+
+      // In production, use redirect mode to avoid serverless streaming limits
+      if (import.meta.env.PROD) {
+        const link = document.createElement('a');
+        link.href = apiUrl;
+        link.rel = 'noopener';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setDownloadStatus('Your download is starting...');
+        return;
+      }
+
+      // Development: stream through local server to set custom filename via header
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -39,32 +55,26 @@ const Tools = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Get the blob data from the response
       const blob = await response.blob();
-      
-      // Debug: Log all response headers
+
       console.log('Response headers:');
       for (let [key, value] of response.headers.entries()) {
         console.log(`${key}: ${value}`);
       }
-      
-      // Extract video title from response headers
+
       const videoTitle = response.headers.get('X-Video-Title') || `youtube-audio-${Date.now()}`;
       console.log('Extracted video title:', videoTitle);
       const filename = `${videoTitle}.mp3`;
-      
-      // Create a blob URL and trigger download programmatically
+
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = filename; // Use video title as filename
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Clean up the blob URL
       URL.revokeObjectURL(blobUrl);
-      
+
       setDownloadStatus('Download completed successfully!');
     } catch (error) {
       console.error('Download error:', error);
