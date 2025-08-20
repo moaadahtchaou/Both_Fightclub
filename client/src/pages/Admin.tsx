@@ -30,7 +30,6 @@ const Admin = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(buildApiUrl(API_ENDPOINTS.USERS), {
         headers: getAuthHeaders(),
       });
