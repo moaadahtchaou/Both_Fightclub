@@ -1,41 +1,28 @@
-require('dotenv').config();
+require('dotenv').config()
 
-const createApp = require('./src/config/app');
-const initializationService = require('./src/services/initialization');
+const express = require('express')
+const app = express()
+const downloadYT = require('./routes/downloadyt')
+const upload = require('./routes/upload')
+
+const cors = require('cors')
+const corsOptions = require('./config/corsOptions')
+
+app.use(cors(corsOptions))
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
+
+app.get('/', (req, res) => {
+  res.send('Hello, World!');
+});
+
+app.use('/download', downloadYT);
+app.use('/upload', upload);
+
 
 const PORT = process.env.PORT || 3000;
 
-// Initialize application
-const startServer = async () => {
-  try {
-    // Initialize database and admin user
-    await initializationService.initialize();
-    
-    // Create Express app
-    const app = createApp();
-    
-    // Start server
-    app.listen(PORT, () => {
-      console.log(`🚀 Server is running on http://localhost:${PORT}`);
-      console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
-    
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
-};
-
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully');
-  process.exit(0);
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
-
-process.on('SIGINT', () => {
-  console.log('🛑 SIGINT received, shutting down gracefully');
-  process.exit(0);
-});
-
-// Start the server
-startServer();
