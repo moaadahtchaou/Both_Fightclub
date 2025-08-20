@@ -4,8 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node dev.js",
+    "dev": "node dev.js",
     "build": "echo 'No build step required'",
     "vercel-build": "echo 'Build completed'"
   },
