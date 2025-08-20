@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildApiUrl, API_ENDPOINTS, getAuthHeaders } from '../config/api';
 
 interface User {
   _id: string;
@@ -30,10 +31,8 @@ const Admin = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.USERS), {
+        headers: getAuthHeaders(),
       });
       
       if (response.ok) {
@@ -52,7 +51,7 @@ const Admin = () => {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:3000/api/users/register', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.REGISTER), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

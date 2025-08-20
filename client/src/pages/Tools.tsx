@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 const Tools = () => {
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -27,7 +28,7 @@ const Tools = () => {
 
     try {
       // Make a direct request to the backend server to download the YouTube video as MP3
-      const response = await fetch(`http://localhost:3000/download?url=${encodeURIComponent(youtubeUrl)}&type=audio`, {
+      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.DOWNLOAD)}?url=${encodeURIComponent(youtubeUrl)}&type=audio`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ const Tools = () => {
       formData.append('fileToUpload', fileToUpload);
       formData.append('reqtype', 'fileupload');
 
-      const response = await fetch('http://localhost:3000/upload', {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.UPLOAD), {
         method: 'POST',
         body: formData,
       });
