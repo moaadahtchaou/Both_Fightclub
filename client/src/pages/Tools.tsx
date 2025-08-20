@@ -27,45 +27,18 @@ const Tools = () => {
     setDownloadStatus('Processing your request...');
 
     try {
-      // Make a direct request to the backend server to download the YouTube video as MP3
-      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.DOWNLOAD)}?url=${encodeURIComponent(youtubeUrl)}&type=audio`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Get the blob data from the response
-      const blob = await response.blob();
+      // Call the backend server to download the YouTube video as MP3
+      const downloadUrl = `${buildApiUrl(API_ENDPOINTS.DOWNLOAD)}?url=${encodeURIComponent(youtubeUrl)}&type=audio`
       
-      // Debug: Log all response headers
-      console.log('Response headers:');
-      for (let [key, value] of response.headers.entries()) {
-        console.log(`${key}: ${value}`);
-      }
-      
-      // Extract video title from response headers
-      const videoTitle = response.headers.get('X-Video-Title') || `youtube-audio-${Date.now()}`;
-      console.log('Extracted video title:', videoTitle);
-      const filename = `${videoTitle}.mp3`;
-      
-      // Create a blob URL and trigger download programmatically
-      const blobUrl = URL.createObjectURL(blob);
+      // Create a temporary link to trigger the download
       const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename; // Use video title as filename
+      link.href = downloadUrl;
+      link.download = '';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // Clean up the blob URL
-      URL.revokeObjectURL(blobUrl);
-      
-      setDownloadStatus('Download completed successfully!');
+      setDownloadStatus('Download started! Check your downloads folder.');
     } catch (error) {
       console.error('Download error:', error);
       setDownloadStatus('Error: Unable to process the video. Please check the URL and try again.');

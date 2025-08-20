@@ -14,17 +14,11 @@ router.get('/', async (req, res) => {
     const info = await ytdl.getInfo(url);
     const title = info.videoDetails.title.replace(/[^a-zA-Z0-9\s]/g, '');
 
-    // Set headers before starting the stream
-    res.header('Access-Control-Expose-Headers', 'X-Video-Title');
-    res.header('X-Video-Title', title);
-    
     if (type === 'audio') {
       res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
-      res.header('Content-Type', 'audio/mpeg');
       ytdl(url, { filter: 'audioonly' }).pipe(res);
     } else {
       res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-      res.header('Content-Type', 'video/mp4');
       ytdl(url, { filter: 'audioandvideo' }).pipe(res);
     }
   } catch (error) {
