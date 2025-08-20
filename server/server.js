@@ -15,10 +15,16 @@ app.use(express.urlencoded({ extended: true }))
 
 app.get('/', (req, res) => {
   res.send('Hello, World!');
-});
+})
 
-app.use('/download', downloadYT);
-app.use('/upload', upload);
+// Basic health check for API
+app.get('/api', (req, res) => {
+  res.json({ status: 'ok' })
+})
+
+// Prefix routes with /api to match client and Vercel routing
+app.use('/api/download', downloadYT)
+app.use('/api/upload', upload)
 
 
 // const PORT = process.env.PORT || 3000;

@@ -2,9 +2,9 @@
 
 // Base URL configuration
 const getBaseUrl = (): string => {
-  // In production (Vercel), use the deployed API endpoint
+  // In production (Vercel), use the same domain as the frontend
   if (import.meta.env.PROD) {
-    // This will be your Vercel deployment URL
+    // The API is deployed on the same Vercel domain as the frontend
     return 'https://both-fightclub-serv.vercel.app/api';
   }
   
