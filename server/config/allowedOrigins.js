@@ -1,6 +1,8 @@
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://webnovel-client.vercel.app'
+    'https://both-fightclub.vercel.app/',
+    'https://both-fightclub.vercel.app'
+
 
 ]
 module.exports=allowedOrigins
