@@ -1,8 +1,12 @@
 const express = require('express');
 const ytdl = require('@distube/ytdl-core');
 const router = express.Router();
+const { SocksProxyAgent } = require('socks-proxy-agent');
 
-// YouTube download endpoint
+// It's recommended to use environment variables for your proxy credentials
+const proxy = process.env.PROXY_URL; // e.g., 'socks5://user:pass@host:port'
+const agent = proxy ? new SocksProxyAgent(proxy) : null;
+
 router.get('/', async (req, res) => {
   const { url, type } = req.query;
 
@@ -11,15 +15,20 @@ router.get('/', async (req, res) => {
   }
 
   try {
-    const info = await ytdl.getInfo(url);
+    const info = await ytdl.getInfo(url, { requestOptions: { agent } });
     const title = info.videoDetails.title.replace(/[^a-zA-Z0-9\s]/g, '');
 
+    res.header('Access-Control-Expose-Headers', 'X-Video-Title');
+    res.header('X-Video-Title', title);
+    
     if (type === 'audio') {
       res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
-      ytdl(url, { filter: 'audioonly' }).pipe(res);
+      res.header('Content-Type', 'audio/mpeg');
+      ytdl(url, { filter: 'audioonly', requestOptions: { agent } }).pipe(res);
     } else {
       res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-      ytdl(url, { filter: 'audioandvideo' }).pipe(res);
+      res.header('Content-Type', 'video/mp4');
+      ytdl(url, { filter: 'audioandvideo', requestOptions: { agent } }).pipe(res);
     }
   } catch (error) {
     console.error('Download error:', error);
