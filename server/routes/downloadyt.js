@@ -103,9 +103,15 @@ router.get('/', async (req, res) => {
         audioFormat: 'mp3',
         audioQuality: '0',
         output: tmpFile,
+        // Request best available audio to avoid format selection errors
+        format: 'bestaudio/best',
+        // Use web client for audio to improve format availability
+        extractorArgs: 'youtube:player_client=web',
         ...commonOpts,
       });
 
+      // Log stderr to help diagnose format issues in hosting logs
+      proc.stderr?.on('data', (d) => process.stdout.write(d.toString()));
       proc.on('error', (err) => {
         console.error('yt-dlp audio error:', err);
         cleanupCookies();
