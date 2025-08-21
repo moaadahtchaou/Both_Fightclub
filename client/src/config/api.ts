@@ -10,7 +10,7 @@ const getBaseUrl = (): string => {
   // In production (fallback), use the previous Vercel server if env not provided
   if (import.meta.env.PROD) {
     // return 'https://both-fightclub-serv.vercel.app/api';
-    return 'https://efde2136-d785-4bb7-92a5-25327548d9ec-00-38a64vidca0d5.janeway.replit.dev/api';
+    return 'https://both-fightclub.onrender.com/api';
 
   }
   // In development, use localhost with /api prefix
