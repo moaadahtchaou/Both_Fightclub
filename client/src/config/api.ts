@@ -2,12 +2,17 @@
 
 // Base URL configuration
 const getBaseUrl = (): string => {
-  // In production (Vercel), use the same domain as the frontend
-  if (import.meta.env.PROD) {
-    // The API is deployed on the same Vercel domain as the frontend
-    return 'https://both-fightclub-serv.vercel.app/api';
+  // Allow overriding via environment for easy deploys
+  const envUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+  if (envUrl && envUrl.trim().length > 0) {
+    return envUrl;
   }
-  
+  // In production (fallback), use the previous Vercel server if env not provided
+  if (import.meta.env.PROD) {
+    // return 'https://both-fightclub-serv.vercel.app/api';
+    return 'https://efde2136-d785-4bb7-92a5-25327548d9ec-00-38a64vidca0d5.janeway.replit.dev/api';
+
+  }
   // In development, use localhost with /api prefix
   return 'http://localhost:3000/api';
 };
