@@ -27,12 +27,37 @@ const Tools = () => {
     setDownloadStatus('Processing your request...');
 
     try {
-      // Make a direct request to the backend server to download the YouTube video as MP3
-      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.DOWNLOAD)}?url=${encodeURIComponent(youtubeUrl)}&type=audio`, {
+      // First try to get video info and direct download URL
+      const base = buildApiUrl(API_ENDPOINTS.DOWNLOAD);
+      
+      try {
+        const infoResponse = await fetch(`${base}/info?url=${encodeURIComponent(youtubeUrl)}&type=audio`);
+        if (infoResponse.ok) {
+          const info = await infoResponse.json();
+          
+          if (info.directUrl) {
+            // Use direct download by creating a temporary anchor element
+            // This bypasses serverless timeout issues
+            const link = document.createElement('a');
+            link.href = info.directUrl;
+            link.download = `${info.title}.mp3`;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            setDownloadStatus('Download started! Check your downloads folder.');
+            return;
+          }
+        }
+      } catch (infoError) {
+        console.log('Direct download failed, falling back to proxy method:', infoError);
+      }
+
+      // Fallback: Use the proxy method (stream through server)
+      const response = await fetch(`${base}?url=${encodeURIComponent(youtubeUrl)}&type=audio`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -42,22 +67,15 @@ const Tools = () => {
       // Get the blob data from the response
       const blob = await response.blob();
       
-      // Debug: Log all response headers
-      console.log('Response headers:');
-      for (let [key, value] of response.headers.entries()) {
-        console.log(`${key}: ${value}`);
-      }
-      
       // Extract video title from response headers
       const videoTitle = response.headers.get('X-Video-Title') || `youtube-audio-${Date.now()}`;
-      console.log('Extracted video title:', videoTitle);
       const filename = `${videoTitle}.mp3`;
       
       // Create a blob URL and trigger download programmatically
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = filename; // Use video title as filename
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
