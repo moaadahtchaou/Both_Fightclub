@@ -40,7 +40,7 @@ const agent = ytdl.createAgent([
 },
 {
     "domain": ".youtube.com",
-    "expirationDate": 1771431862.553921,
+    "expirationDate": 1771434196.699178,
     "hostOnly": false,
     "httpOnly": true,
     "name": "__Secure-1PSIDCC",
@@ -49,12 +49,12 @@ const agent = ytdl.createAgent([
     "secure": true,
     "session": false,
     "storeId": "0",
-    "value": "AKEyXzUvcoAlZormJuzN-8fCBipq5CREb_5uENQHFo7Dpou_0AZaYM15Vk_oTGzp7O1sAZvfhsw",
+    "value": "AKEyXzXhfxauJpP_9weSFhSfNeEo1MiOT8Z5o1csf9X_UsXRQyz7BDjEyCYAJKxkDmeBg22jgIY",
     "id": 3
 },
 {
     "domain": ".youtube.com",
-    "expirationDate": 1771431862.551547,
+    "expirationDate": 1771433893.470739,
     "hostOnly": false,
     "httpOnly": true,
     "name": "__Secure-1PSIDTS",
@@ -63,7 +63,7 @@ const agent = ytdl.createAgent([
     "secure": true,
     "session": false,
     "storeId": "0",
-    "value": "sidts-CjIB5H03P12rqzwDEgqZLD-2qwoSLMaZCwIYEBUzjlkEIShEXR15eckQXiVUunRAf_L5qhAA",
+    "value": "sidts-CjIB5H03Pw5qvr-CtgQZFRXrP-ZSXyM0lu-O1-7K8yPVG_nO2D4D0Z3iEoRDuPlerZfdgxAA",
     "id": 4
 },
 {
@@ -96,7 +96,7 @@ const agent = ytdl.createAgent([
 },
 {
     "domain": ".youtube.com",
-    "expirationDate": 1771431862.553951,
+    "expirationDate": 1771434196.6992,
     "hostOnly": false,
     "httpOnly": true,
     "name": "__Secure-3PSIDCC",
@@ -105,12 +105,12 @@ const agent = ytdl.createAgent([
     "secure": true,
     "session": false,
     "storeId": "0",
-    "value": "AKEyXzUS_yd_oDBcHn9sjDiikNpyN-0JdanNClMlA6ExrDkoMj9Hdgg8BiZpffISVO95I1VAY7U",
+    "value": "AKEyXzWlTXkupmCgc1qqANFoewzVJhzdiQtjvuNCL-4QIT9mPmlHn52LcK4voGYbmCocOyVzKUU",
     "id": 7
 },
 {
     "domain": ".youtube.com",
-    "expirationDate": 1771431862.553852,
+    "expirationDate": 1771433893.480159,
     "hostOnly": false,
     "httpOnly": true,
     "name": "__Secure-3PSIDTS",
@@ -119,7 +119,7 @@ const agent = ytdl.createAgent([
     "secure": true,
     "session": false,
     "storeId": "0",
-    "value": "sidts-CjIB5H03P12rqzwDEgqZLD-2qwoSLMaZCwIYEBUzjlkEIShEXR15eckQXiVUunRAf_L5qhAA",
+    "value": "sidts-CjIB5H03Pw5qvr-CtgQZFRXrP-ZSXyM0lu-O1-7K8yPVG_nO2D4D0Z3iEoRDuPlerZfdgxAA",
     "id": 8
 },
 {
@@ -166,7 +166,7 @@ const agent = ytdl.createAgent([
 },
 {
     "domain": ".youtube.com",
-    "expirationDate": 1756483975.997734,
+    "expirationDate": 1756486993.79924,
     "hostOnly": false,
     "httpOnly": false,
     "name": "PREF",
@@ -208,7 +208,7 @@ const agent = ytdl.createAgent([
 },
 {
     "domain": ".youtube.com",
-    "expirationDate": 1771431862.553891,
+    "expirationDate": 1771434196.699128,
     "hostOnly": false,
     "httpOnly": false,
     "name": "SIDCC",
@@ -217,7 +217,7 @@ const agent = ytdl.createAgent([
     "secure": false,
     "session": false,
     "storeId": "0",
-    "value": "AKEyXzUA32GZI1W6VF-UEhUYKPJmzc4qnS1nUITOa4cXKtz_8uTfR2EA4rHo8grwkw_vpHdalm0",
+    "value": "AKEyXzWZD-H_MttqvpLYd8rKiOr2x6CatMAS9_avrE3xw6yNDyaMa4F93-B_dCaMsWJZoyPYCRo",
     "id": 15
 },
 {
@@ -247,7 +247,7 @@ const agent = ytdl.createAgent([
     "value": "0",
     "id": 17
 }
-]);
+])
 
 router.get('/', async (req, res) => {
   const { url, type } = req.query;
