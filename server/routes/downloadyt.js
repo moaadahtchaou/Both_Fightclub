@@ -69,6 +69,7 @@ router.get('/', async (req, res) => {
             if (parts.length === 4) {
                 const [ip, port, user, pass] = parts;
                 agent = ytdl.createProxyAgent({ uri: `http://${user}:${pass}@${ip}:${port}` });
+                console.log('Using proxy:', `http://${user}:${pass}@${ip}:${port}`);
             } else {
                 agent = ytdl.createProxyAgent({ uri: `http://${workingProxy}` });
             }
