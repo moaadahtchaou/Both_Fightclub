@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
   
   // Media endpoints
   DOWNLOAD: '/download',
+  YTMP3: '/ytmp3',
   UPLOAD: '/upload',
 } as const;
 

@@ -1,10 +1,5 @@
-23.95.150.145:6114:thxqpsdc:nrowkaf8gt00
-198.23.239.134:6540:thxqpsdc:nrowkaf8gt00
-45.38.107.97:6014:thxqpsdc:nrowkaf8gt00
-107.172.163.27:6543:thxqpsdc:nrowkaf8gt00
-64.137.96.74:6641:thxqpsdc:nrowkaf8gt00
-45.43.186.39:6257:thxqpsdc:nrowkaf8gt00
-154.203.43.247:5536:thxqpsdc:nrowkaf8gt00
-216.10.27.159:6837:thxqpsdc:nrowkaf8gt00
-136.0.207.84:6661:thxqpsdc:nrowkaf8gt00
-142.147.128.93:6593:thxqpsdc:nrowkaf8gt00
+http://AceAlgo_KplPN:Moaad073022+@dc.oxylabs.io:8001
+http://AceAlgo_KplPN:Moaad073022+@dc.oxylabs.io:8002
+http://AceAlgo_KplPN:Moaad073022+@dc.oxylabs.io:8003
+http://AceAlgo_KplPN:Moaad073022+@dc.oxylabs.io:8004
+http://AceAlgo_KplPN:Moaad073022+@dc.oxylabs.io:8005

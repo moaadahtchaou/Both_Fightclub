@@ -3,6 +3,7 @@ require('dotenv').config()
 const express = require('express')
 const app = express()
 const downloadYT = require('./routes/downloadyt')
+const ytmp3Scraper = require('./routes/ytmp3-scraper')
 const upload = require('./routes/upload')
 
 const cors = require('cors')
@@ -24,6 +25,7 @@ app.get('/api', (req, res) => {
 
 // Prefix routes with /api to match client and Vercel routing
 app.use('/api/download', downloadYT)
+app.use('/api/ytmp3', ytmp3Scraper)
 app.use('/api/upload', upload)
 
 

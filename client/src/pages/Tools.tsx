@@ -27,8 +27,8 @@ const Tools = () => {
     setDownloadStatus('Processing your request...');
 
     try {
-      // Make a direct request to the backend server to download the YouTube video as MP3
-      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.DOWNLOAD)}?url=${encodeURIComponent(youtubeUrl)}&type=audio`, {
+      // Make a direct request to the backend server to download the YouTube video as MP3 using ytmp3.as
+      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.YTMP3)}?url=${encodeURIComponent(youtubeUrl)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -11,18 +11,10 @@ async function testProxy(proxy) {
   const controller = new AbortController();
   const timeout = setTimeout(() => {
     controller.abort();
-  }, 5000);
+  }, 2000);
 
   try {
-    const parts = proxy.split(':');
-    let agent;
-    if (parts.length === 4) {
-      const [ip, port, user, pass] = parts;
-      agent = new HttpsProxyAgent(`http://${user}:${pass}@${ip}:${port}`);
-    } else {
-      agent = new HttpsProxyAgent(`http://${proxy}`);
-    }
-
+    const agent = new HttpsProxyAgent(proxy);
     const res = await fetch("https://www.youtube.com", { agent, method: "GET", signal: controller.signal });
     if (res.status === 200) {
       return proxy;
@@ -36,7 +28,7 @@ async function testProxy(proxy) {
 }
 
 async function getWorkingProxy(proxyFile) {
-    const proxies = fs.readFileSync(proxyFile, 'utf8').split('\n').filter(proxy => proxy);
+    const proxies = fs.readFileSync(proxyFile, 'utf8').split('\n').filter(proxy => proxy.trim());
     const workingProxies = [];
     for (const proxy of proxies) {
         const workingProxy = await testProxy(proxy);
@@ -65,20 +57,15 @@ router.get('/', async (req, res) => {
     if (proxyFile) {
         const workingProxy = await getWorkingProxy(proxyFile);
         if (workingProxy) {
-            const parts = workingProxy.split(':');
-            if (parts.length === 4) {
-                const [ip, port, user, pass] = parts;
-                agent = ytdl.createProxyAgent({ uri: `http://${user}:${pass}@${ip}:${port}` });
-                console.log('Using proxy:', `http://${user}:${pass}@${ip}:${port}`);
-            } else {
-                agent = ytdl.createProxyAgent({ uri: `http://${workingProxy}` });
-            }
+          console.log('Working proxy:', workingProxy);
+          agent = ytdl.createProxyAgent({ uri: workingProxy });
+          console.log('Using proxy:', workingProxy);
         }
     }
-
-    const info = await ytdl.getInfo(url, {agent});
-
-    const title = info.videoDetails.title.replace(/[^a-zA-Z0-9\s]/g, '');
+    agent=ytdl.createProxyAgent({ uri: "http://AceAlgo_KplPN:Moaad073022+@dc.oxylabs.io:8001" })
+    const info = await ytdl.getInfo(url,{agent} );
+    console.log('info:');
+    const title = info.videoDetails.title.replace(/[^a-zA-Z0-9\\s]/g, '');
 
     res.header('Access-Control-Expose-Headers', 'X-Video-Title');
     res.header('X-Video-Title', title);
@@ -86,7 +73,7 @@ router.get('/', async (req, res) => {
     //Audio
     res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
     res.header('Content-Type', 'audio/mpeg');
-    ytdl(url, { filter: 'audioonly', agent }).pipe(res);
+    ytdl(url, { filter: 'audioonly',agent}).pipe(res);
 
     
   } catch (error) {
