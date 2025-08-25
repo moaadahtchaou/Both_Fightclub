@@ -13,7 +13,7 @@ const AllinoneDownloadUpload: React.FC<AllinoneDownloadUploadProps> = ({ classNa
 
   
   // Upload states
-  const [isUploading, setIsUploading] = useState(false);
+
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadedUrl, setUploadedUrl] = useState('');
   
@@ -77,7 +77,6 @@ const AllinoneDownloadUpload: React.FC<AllinoneDownloadUploadProps> = ({ classNa
       }
     } finally {
       setIsDownloading(false);
-      setIsUploading(false);
       setIsProcessing(false);
     }
   };

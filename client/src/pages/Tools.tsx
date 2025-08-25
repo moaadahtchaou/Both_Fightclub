@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import YouTubeDownloader from '../components/tools/YouTubeDownloader';
 import MP3Uploader from '../components/tools/MP3Uploader';
 import AllinoneDownloadUpload from '../components/tools/AllinoneDownloadUpload';
 
 const Tools = () => {
-  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
 
