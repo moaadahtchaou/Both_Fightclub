@@ -80,11 +80,15 @@ async function scrapeYtmp3(youtubeUrl) {
     // Set up network interception to capture download URLs
     let downloadUrl = null;
     let capturedRequests = [];
+    let networkRequests = [];
+    let allResponses = [];
     
     await page.setRequestInterception(true);
     
+    // Capture all network activity for debugging
     page.on('request', (request) => {
       const url = request.url();
+      console.log(`📤 Request: ${request.method()} ${url}`);
       // Log all requests for debugging
       if (url.includes('download') || url.includes('.mp3') || url.includes('convert')) {
         console.log('🔍 Intercepted request:', url);
@@ -95,7 +99,16 @@ async function scrapeYtmp3(youtubeUrl) {
     
     page.on('response', async (response) => {
       const url = response.url();
-      const contentType = response.headers()['content-type'] || '';
+      const status = response.status();
+      const headers = response.headers();
+      const contentType = headers['content-type'] || '';
+      
+      // Log all network requests for debugging
+      networkRequests.push({ url, status, timestamp: new Date().toISOString() });
+      allResponses.push({ url, status, headers });
+      
+      console.log(`📡 Network response: ${status} ${url}`);
+      console.log(`📋 Response headers:`, JSON.stringify(headers, null, 2));
       
       // Look for MP3 download URLs in responses
       if (contentType.includes('audio/mpeg') || 
@@ -106,44 +119,79 @@ async function scrapeYtmp3(youtubeUrl) {
         downloadUrl = url;
       }
       
-      // Check convert API responses for download URLs
-      if (url.includes('/convert') || url.includes('/api/v1/convert')) {
+      // Check for convert API responses
+      if (url.includes('/convert') || url.includes('/api/convert') || url.includes('ytmp3.as')) {
         try {
           const responseText = await response.text();
-          console.log('🔄 Convert API Response:', responseText);
+          console.log(`🔍 Convert API response from ${url}:`, responseText.substring(0, 500));
           
           // Try to parse as JSON
           try {
             const jsonData = JSON.parse(responseText);
-            console.log('📄 Parsed JSON:', jsonData);
+            console.log(`📊 Parsed JSON data:`, JSON.stringify(jsonData, null, 2));
             
-            // Look for download URL in various possible fields
-            if (jsonData.downloadURL) {
-              downloadUrl = jsonData.downloadURL;
-              console.log('🔗 Found downloadURL:', downloadUrl);
-            } else if (jsonData.download_url) {
-              downloadUrl = jsonData.download_url;
-              console.log('🔗 Found download_url:', downloadUrl);
-            } else if (jsonData.url) {
-              downloadUrl = jsonData.url;
-              console.log('🔗 Found url:', downloadUrl);
-            } else if (jsonData.link) {
-              downloadUrl = jsonData.link;
-              console.log('🔗 Found link:', downloadUrl);
+            // Check various possible fields for download URL
+            const possibleFields = ['downloadUrl', 'download_url', 'url', 'link', 'file', 'mp3', 'audio', 'redirectURL', 'redirect_url'];
+            
+            for (const field of possibleFields) {
+              if (jsonData[field] && typeof jsonData[field] === 'string' && 
+                  (jsonData[field].includes('.mp3') || jsonData[field].includes('download') || jsonData[field].includes('blob:'))) {
+                downloadUrl = jsonData[field];
+                console.log(`✅ Download URL found in ${field}:`, downloadUrl);
+                break;
+              }
             }
+            
+            // Check for progress URL that might need polling
+            if (jsonData.progressURL || jsonData.progress_url) {
+              console.log('📊 Progress URL found, might need polling:', jsonData.progressURL || jsonData.progress_url);
+            }
+            
           } catch (parseError) {
-            // Not JSON, check if it's a direct URL
-            if (responseText.includes('http') && (responseText.includes('.mp3') || responseText.includes('download'))) {
-              // Extract URL from text response
-              const urlMatch = responseText.match(/(https?:\/\/[^\s"'<>]+)/g);
-              if (urlMatch && urlMatch[0]) {
+            // Not JSON, check if the response text itself contains a download URL
+            if (responseText.includes('.mp3') || responseText.includes('download')) {
+              console.log('🔍 Non-JSON response might contain download info:', responseText.substring(0, 200));
+            }
+          }
+        } catch (error) {
+          console.log('❌ Error processing convert response:', error.message);
+        }
+      }
+      
+      // Check for download API responses
+      if (url.includes('/download') || url.includes('ytmp3.as/download') || url.includes('.mp3')) {
+        try {
+          const responseText = await response.text();
+          console.log(`🎵 Download API response from ${url}:`, responseText.substring(0, 300));
+          
+          // Check if this URL itself is the download link
+          if (url.includes('.mp3') && status === 200) {
+            downloadUrl = url;
+            console.log(`✅ Direct download URL found:`, downloadUrl);
+          } else {
+            // Try to parse response for download URL
+            try {
+              const jsonData = JSON.parse(responseText);
+              const possibleFields = ['downloadUrl', 'download_url', 'url', 'link', 'file'];
+              
+              for (const field of possibleFields) {
+                if (jsonData[field] && typeof jsonData[field] === 'string') {
+                  downloadUrl = jsonData[field];
+                  console.log(`✅ Download URL found in download response ${field}:`, downloadUrl);
+                  break;
+                }
+              }
+            } catch (parseError) {
+              // Check for direct URL in response text
+              const urlMatch = responseText.match(/https?:\/\/[^\s"'<>]+\.mp3[^\s"'<>]*/i);
+              if (urlMatch) {
                 downloadUrl = urlMatch[0];
-                console.log('🔗 Extracted URL from text response:', downloadUrl);
+                console.log(`✅ Download URL extracted from text:`, downloadUrl);
               }
             }
           }
-        } catch (e) {
-          console.log('⚠️ Error reading convert API response:', e.message);
+        } catch (error) {
+          console.log('❌ Error processing download response:', error.message);
         }
       }
       
@@ -200,6 +248,50 @@ async function scrapeYtmp3(youtubeUrl) {
           title: sanitizeFilename(`youtube_${videoId}`)
         };
       }
+      
+      // Capture page source for debugging
+      console.log('🔍 Capturing page source for debugging...');
+      const pageSource = await page.content();
+      console.log('📋 Page source length:', pageSource.length);
+      console.log('📋 Page source (first 2000 chars):', pageSource.substring(0, 2000));
+      
+      // Check current URL
+      const currentUrl = page.url();
+      console.log('🌐 Current URL:', currentUrl);
+      
+      // Summary of network activity
+      console.log('📊 Network Activity Summary:');
+      console.log(`📡 Total network requests: ${networkRequests.length}`);
+      console.log(`📋 All responses:`, allResponses.map(r => `${r.status} ${r.url}`).join('\n'));
+      
+      // Check for any JavaScript errors
+      const jsErrors = await page.evaluate(() => {
+        const errors = [];
+        const originalError = console.error;
+        console.error = function(...args) {
+          errors.push(args.join(' '));
+          originalError.apply(console, args);
+        };
+        return errors;
+      });
+      
+      if (jsErrors.length > 0) {
+        console.log('⚠️ JavaScript errors found:', jsErrors);
+      }
+      
+      // Check if page has any forms or interactive elements
+      const pageElements = await page.evaluate(() => {
+        return {
+          forms: document.querySelectorAll('form').length,
+          inputs: document.querySelectorAll('input').length,
+          buttons: document.querySelectorAll('button').length,
+          scripts: document.querySelectorAll('script').length,
+          title: document.title,
+          bodyText: document.body ? document.body.textContent.substring(0, 500) : 'No body'
+        };
+      });
+      
+      console.log('🔍 Page elements:', JSON.stringify(pageElements, null, 2));
       
     } catch (error) {
       console.log('⚠️ Direct URL approach failed:', error.message);
