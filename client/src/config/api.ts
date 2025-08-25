@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
   DOWNLOAD: '/download',
   YTMP3: '/ytmp3',
   UPLOAD: '/upload',
+  ALLINONE: '/allinone/download-and-upload',
 } as const;
 
 // Helper function to build full API URLs

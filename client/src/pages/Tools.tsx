@@ -1,167 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { buildApiUrl, API_ENDPOINTS } from '../config/api';
+import React, { useState } from 'react';
+import YouTubeDownloader from '../components/tools/YouTubeDownloader';
+import MP3Uploader from '../components/tools/MP3Uploader';
+import AllinoneDownloadUpload from '../components/tools/AllinoneDownloadUpload';
 
 const Tools = () => {
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadStatus, setDownloadStatus] = useState('');
-  
-  // MP3 Upload states
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [hasValidFile, setHasValidFile] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
-  const [uploadedUrl, setUploadedUrl] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
-  // Debug effect to monitor state changes
-  useEffect(() => {
-    console.log('🔄 State changed - selectedFile:', selectedFile?.name, 'hasValidFile:', hasValidFile, 'isUploading:', isUploading);
-  }, [selectedFile, hasValidFile, isUploading]);
 
-  const handleDownload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!youtubeUrl.trim()) return;
 
-    setIsDownloading(true);
-    setDownloadStatus('Processing your request...');
-
-    try {
-      // Make a direct request to the backend server to download the YouTube video as MP3 using ytmp3.as
-      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.YTMP3)}?url=${encodeURIComponent(youtubeUrl)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Get the blob data from the response
-      const blob = await response.blob();
-      
-      // Debug: Log all response headers
-      console.log('Response headers:');
-      for (let [key, value] of response.headers.entries()) {
-        console.log(`${key}: ${value}`);
-      }
-      
-      // Extract video title from response headers
-      const videoTitle = response.headers.get('X-Video-Title') || `youtube-audio-${Date.now()}`;
-      console.log('Extracted video title:', videoTitle);
-      const filename = `${videoTitle}.mp3`;
-      
-      // Create a blob URL and trigger download programmatically
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename; // Use video title as filename
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up the blob URL
-      URL.revokeObjectURL(blobUrl);
-      
-      setDownloadStatus('Download completed successfully!');
-    } catch (error) {
-      console.error('Download error:', error);
-      setDownloadStatus('Error: Unable to process the video. Please check the URL and try again.');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    console.log('Upload clicked, selectedFile:', selectedFile); // Debug log
-    
-    // Get the current file from the input as a fallback
-    const currentFile = fileInputRef.current?.files?.[0];
-    const fileToUpload = selectedFile || currentFile;
-    console.log('fileToUpload:', fileToUpload); // Debug log
-    if (!fileToUpload) {
-      setUploadStatus('Error: Please select a file.');
-      return;
-    }
-    
-    // Validate the file type again
-    if (fileToUpload.type !== 'audio/mpeg' && !fileToUpload.name.toLowerCase().endsWith('.mp3')) {
-      setUploadStatus('Error: Please select a valid MP3 file.');
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadStatus('Uploading to Catbox...');
-    setUploadedUrl('');
-
-    try {
-      const formData = new FormData();
-      formData.append('fileToUpload', fileToUpload);
-      formData.append('reqtype', 'fileupload');
-
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.UPLOAD), {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const url = await response.text();
-        setUploadedUrl(url);
-        setUploadStatus('File uploaded successfully!');
-      } else {
-        setUploadStatus('Error: Upload failed. Please try again.');
-      }
-    } catch (error) {
-      setUploadStatus('Error: Network error. Please check your connection and try again.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('=== handleFileSelect called ===');
-    const file = e.target.files?.[0];
-    console.log('File object:', file);
-    console.log('File name:', file?.name);
-    console.log('File type:', file?.type);
-    console.log('File size:', file?.size);
-    
-    // Clear previous status and URL
-    setUploadStatus('');
-    setUploadedUrl('');
-    
-    if (file) {
-      const isValidType = file.type === 'audio/mpeg' || file.name.toLowerCase().endsWith('.mp3');
-      console.log('Is valid MP3?', isValidType);
-      
-      if (isValidType) {
-        console.log('✅ Valid MP3 file detected, updating states');
-        setSelectedFile(file);
-        setHasValidFile(true);
-        console.log('States updated - selectedFile and hasValidFile set to true');
-      } else {
-        console.log('❌ Invalid file type detected');
-        setUploadStatus('Error: Please select a valid MP3 file.');
-        setSelectedFile(null);
-        setHasValidFile(false);
-        // Clear the input
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      }
-    } else {
-      console.log('❌ No file in event');
-      setSelectedFile(null);
-      setHasValidFile(false);
-    }
-    console.log('=== handleFileSelect finished ===');
-  };
 
   const tools = [
+    {
+      name: "All-in-One: Download & Upload",
+      description: "Download from YouTube and upload directly to Catbox in one step",
+      icon: "🔄",
+      category: "Media",
+      status: "Active",
+      component: "allinone"
+    },
     {
       name: "YouTube MP3 Downloader",
       description: "Convert YouTube videos to high-quality MP3 files instantly",
@@ -222,232 +79,9 @@ const Tools = () => {
 
   const categories = [...new Set(tools.map(tool => tool.category))];
 
-  const MP3Uploader = () => (
-    <div className="card">
-      <div className="flex items-center mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center mr-4">
-          <span className="text-2xl">📤</span>
-        </div>
-        <div>
-          <h3 className="text-xl font-bold text-white">MP3 File Uploader</h3>
-          <p className="text-gray-400">Upload MP3 files to Catbox for easy sharing</p>
-        </div>
-      </div>
-      
-      <form onSubmit={handleFileUpload} className="space-y-4" noValidate>
-        <div>
-          <label htmlFor="file-upload" className="block text-sm font-medium text-gray-300 mb-2">
-            Select MP3 File
-          </label>
-          <div className="relative">
-            <input
-              id="file-upload"
-              ref={fileInputRef}
-              type="file"
-              accept=".mp3,audio/mpeg"
-              onChange={handleFileSelect}
-              className="sr-only"
-            />
-            <label
-              htmlFor="file-upload"
-              className="w-full flex items-center justify-between pl-4 pr-1 py-1 bg-gray-700 border border-gray-600 rounded-lg text-white cursor-pointer hover:bg-gray-600 transition-all"
-            >
-              <span className="truncate pr-2">
-                {selectedFile ? selectedFile.name : 'No file chosen'}
-              </span>
-              <span className="px-4 py-2 text-sm font-semibold bg-primary-600 rounded-md hover:bg-primary-700">
-                Browse
-              </span>
-            </label>
-          </div>
-          {selectedFile && (
-            <p className="text-sm text-gray-400 mt-2">
-              Size: ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-            </p>
-          )}
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button
-            type="button"
-            disabled={isUploading || !hasValidFile}
-            className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            onClick={handleFileUpload}
-          >
-            {isUploading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Uploading...
-              </>
-            ) : (
-              <>Upload to Catbox</>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedFile(null);
-              setHasValidFile(false);
-              setUploadStatus('');
-              setUploadedUrl('');
-              if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-              }
-            }}
-            className="btn-secondary px-6"
-          >
-            Clear
-          </button>
-        </div>
-        
-        {uploadStatus && (
-          <div className={`p-4 rounded-lg ${
-            uploadStatus.includes('Error') 
-              ? 'bg-red-900/20 border border-red-700/30 text-red-400'
-              : uploadStatus.includes('successfully')
-              ? 'bg-green-900/20 border border-green-700/30 text-green-400'
-              : 'bg-blue-900/20 border border-blue-700/30 text-blue-400'
-          }`}>
-            {uploadStatus}
-          </div>
-        )}
-        
-        {uploadedUrl && (
-          <div className="p-4 bg-green-900/20 border border-green-700/30 rounded-lg">
-            <p className="text-green-400 font-semibold mb-2">File URL:</p>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={uploadedUrl}
-                readOnly
-                className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => navigator.clipboard.writeText(uploadedUrl)}
-                className="px-3 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors text-sm"
-              >
-                Copy
-              </button>
-            </div>
-          </div>
-        )}
-      </form>
-      
-      <div className="mt-6 p-4 bg-gray-700/30 rounded-lg">
-        <h4 className="text-sm font-semibold text-primary-400 mb-2">Features:</h4>
-        <ul className="text-sm text-gray-400 space-y-1">
-          <li className="flex items-center">
-            <span className="text-green-400 mr-2">✓</span>
-            Fast and secure file upload
-          </li>
-          <li className="flex items-center">
-            <span className="text-green-400 mr-2">✓</span>
-            Direct shareable links
-          </li>
-          <li className="flex items-center">
-            <span className="text-green-400 mr-2">✓</span>
-            No file size limits
-          </li>
-          <li className="flex items-center">
-            <span className="text-green-400 mr-2">✓</span>
-            Permanent hosting on Catbox
-          </li>
-        </ul>
-      </div>
-    </div>
-  );
 
-  const YouTubeDownloader = () => (
-    <div className="card">
-      <div className="flex items-center mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center mr-4">
-          <span className="text-2xl">🎵</span>
-        </div>
-        <div>
-          <h3 className="text-xl font-bold text-white">YouTube MP3 Downloader</h3>
-          <p className="text-gray-400">Convert YouTube videos to high-quality MP3 files</p>
-        </div>
-      </div>
-      
-      <form onSubmit={handleDownload} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            YouTube Video URL
-          </label>
-          <input
-            type="url"
-            value={youtubeUrl}
-            onChange={(e) => setYoutubeUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=..."
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-            required
-          />
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button
-            type="submit"
-            disabled={isDownloading || !youtubeUrl.trim()}
-            className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isDownloading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Processing...
-              </>
-            ) : (
-              <>Download MP3</>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setYoutubeUrl('');
-              setDownloadStatus('');
-            }}
-            className="btn-secondary px-6"
-          >
-            Clear
-          </button>
-        </div>
-        
-        {downloadStatus && (
-          <div className={`p-4 rounded-lg ${
-            downloadStatus.includes('Error') 
-              ? 'bg-red-900/20 border border-red-700/30 text-red-400'
-              : downloadStatus.includes('ready')
-              ? 'bg-green-900/20 border border-green-700/30 text-green-400'
-              : 'bg-blue-900/20 border border-blue-700/30 text-blue-400'
-          }`}>
-            {downloadStatus}
-          </div>
-        )}
-      </form>
-      
-      <div className="mt-6 p-4 bg-gray-700/30 rounded-lg">
-        <h4 className="text-sm font-semibold text-primary-400 mb-2">Features:</h4>
-        <ul className="text-sm text-gray-400 space-y-1">
-          <li className="flex items-center">
-            <span className="text-green-400 mr-2">✓</span>
-            High-quality MP3 conversion (320kbps)
-          </li>
-          <li className="flex items-center">
-            <span className="text-green-400 mr-2">✓</span>
-            Fast processing and download
-          </li>
-          <li className="flex items-center">
-            <span className="text-green-400 mr-2">✓</span>
-            No registration required
-          </li>
-          <li className="flex items-center">
-            <span className="text-green-400 mr-2">✓</span>
-            Supports all YouTube video lengths
-          </li>
-        </ul>
-      </div>
-    </div>
-  );
+
+
 
   return (
     <div className="py-20 px-4 sm:px-6 lg:px-8">
@@ -460,19 +94,30 @@ const Tools = () => {
             From media conversion to gaming utilities, we've got you covered.
           </p>
         </div>
-        
-        {/* Active Tools */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold text-white mb-8 flex items-center">
-            <span className="text-primary-400 mr-3">🛠️</span>
-            Active Tools
-          </h2>
-          
-          <div className="space-y-8">
-            <YouTubeDownloader />
-            <MP3Uploader />
-          </div>
-        </section>
+
+        {/* Selected Tool Section */}
+        {selectedTool && (
+          <section className="mb-16">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-white flex items-center">
+                <span className="text-primary-400 mr-3">🎯</span>
+                Selected Tool
+              </h2>
+              <button
+                onClick={() => setSelectedTool(null)}
+                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                ✕ Close
+              </button>
+            </div>
+            
+            <div className="max-w-4xl mx-auto">
+              {selectedTool === 'allinone' && <AllinoneDownloadUpload />}
+              {selectedTool === 'downloader' && <YouTubeDownloader />}
+              {selectedTool === 'uploader' && <MP3Uploader />}
+            </div>
+          </section>
+        )}
         
         {/* All Tools Overview */}
         <section className="mb-16">
@@ -497,8 +142,15 @@ const Tools = () => {
             {tools.map((tool, index) => (
               <div 
                 key={tool.name}
-                className="card group hover:scale-105 transition-all duration-300"
+                className="card group hover:scale-105 transition-all duration-300 cursor-pointer"
                 style={{ animationDelay: `${index * 0.1}s` }}
+                onClick={() => {
+                  if (tool.status === 'Active') {
+                    setSelectedTool(tool.component);
+                    // Scroll to top smoothly
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
@@ -543,6 +195,7 @@ const Tools = () => {
             ))}
           </div>
         </section>
+        
         
         {/* Tool Requests */}
         <section className="mb-16">

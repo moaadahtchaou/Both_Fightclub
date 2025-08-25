@@ -5,6 +5,7 @@ const app = express()
 const downloadYT = require('./routes/downloadyt')
 const ytmp3Scraper = require('./routes/ytmp3-scraper')
 const upload = require('./routes/upload')
+const allinone = require('./routes/allinone')
 
 const cors = require('cors')
 const corsOptions = require('./config/corsOptions')
@@ -27,6 +28,7 @@ app.get('/api', (req, res) => {
 app.use('/api/download', downloadYT)
 app.use('/api/ytmp3', ytmp3Scraper)
 app.use('/api/upload', upload)
+app.use('/api/allinone', allinone)
 
 
 // const PORT = process.env.PORT || 3000;
