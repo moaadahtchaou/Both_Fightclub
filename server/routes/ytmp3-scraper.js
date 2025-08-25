@@ -1,3 +1,28 @@
+/**
+ * YouTube MP3 Scraper with Proxy Support
+ * 
+ * This script scrapes ytmp3.as to convert YouTube videos to MP3 format.
+ * It includes comprehensive proxy support for enhanced reliability and anonymity.
+ * 
+ * Proxy Features:
+ * - Loads proxy addresses from '../validiadress.txt'
+ * - Randomly selects a proxy for each scraping session
+ * - Supports HTTP proxies with authentication (username:password)
+ * - Configures Puppeteer browser to use the selected proxy
+ * - Handles proxy authentication automatically
+ * - Falls back to direct connection if no proxies are available
+ * - Logs proxy usage for monitoring and debugging
+ * 
+ * Requirements:
+ * - validiadress.txt file in the parent directory with proxy addresses
+ * - Proxy format: http://username:password@host:port (one per line)
+ * - All dependencies installed via npm install
+ * 
+ * Usage:
+ * The proxy functionality is automatically integrated into the scraping process.
+ * No additional configuration is required beyond having valid proxy addresses.
+ */
+
 const express = require('express');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
@@ -7,6 +32,49 @@ const pipeline = promisify(require('stream').pipeline);
 const fetch = require('node-fetch');
 
 const router = express.Router();
+
+// Function to load and parse proxy addresses
+function loadProxies() {
+  try {
+    const proxyFile = path.join(__dirname, '..', 'validiadress.txt');
+    const proxyData = fs.readFileSync(proxyFile, 'utf8');
+    const proxies = proxyData.split('\n')
+      .map(line => line.trim())
+      .filter(line => line && line.startsWith('http'));
+    return proxies;
+  } catch (error) {
+    console.log('⚠️ Could not load proxies:', error.message);
+    return [];
+  }
+}
+
+// Function to get a random proxy
+function getRandomProxy() {
+  const proxies = loadProxies();
+  if (proxies.length === 0) {
+    console.log('⚠️ No proxies available, running without proxy');
+    return null;
+  }
+  const randomProxy = proxies[Math.floor(Math.random() * proxies.length)];
+  console.log('🔄 Using proxy:', randomProxy.replace(/:\/\/[^@]+@/, '://***:***@')); // Hide credentials in log
+  return randomProxy;
+}
+
+// Function to parse proxy URL and extract components
+function parseProxy(proxyUrl) {
+  try {
+    const url = new URL(proxyUrl);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port),
+      username: url.username,
+      password: url.password
+    };
+  } catch (error) {
+    console.log('⚠️ Error parsing proxy URL:', error.message);
+    return null;
+  }
+}
 
 // Helper function to extract YouTube video ID from URL
 function extractVideoId(url) {
@@ -35,9 +103,17 @@ async function scrapeYtmp3(youtubeUrl) {
     throw new Error('Invalid YouTube URL - could not extract video ID');
   }
   
+  // Log proxy status
+  const proxies = loadProxies();
+  console.log(`🌐 Loaded ${proxies.length} available proxies`);
+  
   try {
-    // Launch Puppeteer browser with enhanced error handling
-    browser = await puppeteer.launch({
+    // Get random proxy configuration
+    const proxyUrl = getRandomProxy();
+    const proxyConfig = proxyUrl ? parseProxy(proxyUrl) : null;
+    
+    // Prepare launch options with proxy configuration
+    const launchOptions = {
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -66,9 +142,27 @@ async function scrapeYtmp3(youtubeUrl) {
       ],
       headless: true, // Use standard headless mode for better compatibility
       timeout: 30000 // 30 second timeout for browser launch
-    });
+    };
+    
+    // Add proxy server argument if proxy is configured
+    if (proxyConfig) {
+      launchOptions.args.push(`--proxy-server=${proxyConfig.host}:${proxyConfig.port}`);
+      console.log('🔧 Proxy configured for browser:', `${proxyConfig.host}:${proxyConfig.port}`);
+    }
+    
+    // Launch Puppeteer browser with enhanced error handling
+    browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
+    
+    // Configure proxy authentication if credentials are provided
+    if (proxyConfig && proxyConfig.username && proxyConfig.password) {
+      await page.authenticate({
+        username: proxyConfig.username,
+        password: proxyConfig.password
+      });
+      console.log('🔐 Proxy authentication configured');
+    }
     
     // Set page timeout and user agent
     await page.setDefaultTimeout(30000);
@@ -88,10 +182,10 @@ async function scrapeYtmp3(youtubeUrl) {
     // Capture all network activity for debugging
     page.on('request', (request) => {
       const url = request.url();
-      console.log(`📤 Request: ${request.method()} ${url}`);
+      // console.log(`📤 Request: ${request.method()} ${url}`);
       // Log all requests for debugging
       if (url.includes('download') || url.includes('.mp3') || url.includes('convert')) {
-        console.log('🔍 Intercepted request:', url);
+        // console.log('🔍 Intercepted request:', url);
         capturedRequests.push(url);
       }
       request.continue();
@@ -107,128 +201,46 @@ async function scrapeYtmp3(youtubeUrl) {
       networkRequests.push({ url, status, timestamp: new Date().toISOString() });
       allResponses.push({ url, status, headers });
       
-      console.log(`📡 Network response: ${status} ${url}`);
-      console.log(`📋 Response headers:`, JSON.stringify(headers, null, 2));
+      // console.log(`📡 Network response: ${status} ${url}`);
       
-      // Look for MP3 download URLs in responses
-      if (contentType.includes('audio/mpeg') || 
-          url.includes('.mp3') || 
-          (contentType.includes('application/octet-stream') && url.includes('download'))) {
-        console.log('🎵 Found potential download URL:', url);
-        console.log('📋 Content-Type:', contentType);
-        downloadUrl = url;
-      }
+      // // Look for MP3 download URLs in responses
+      // if (contentType.includes('audio/mpeg') || 
+      //     url.includes('.mp3') || 
+      //     (contentType.includes('application/octet-stream') && url.includes('download'))) {
+
+      //   downloadUrl = url;
+      // }
       
-      // Check for convert API responses
-      if (url.includes('/convert') || url.includes('/api/convert') || url.includes('ytmp3.as')) {
+      // Check for convert API responses and XHR responses
+      if (url.includes('/convert')) {
         try {
           const responseText = await response.text();
-          console.log(`🔍 Convert API response from ${url}:`, responseText.substring(0, 500));
-          
           // Try to parse as JSON
-          try {
-            const jsonData = JSON.parse(responseText);
-            console.log(`📊 Parsed JSON data:`, JSON.stringify(jsonData, null, 2));
-            
-            // Check various possible fields for download URL
-            const possibleFields = ['downloadUrl', 'download_url', 'url', 'link', 'file', 'mp3', 'audio', 'redirectURL', 'redirect_url'];
-            
-            for (const field of possibleFields) {
-              if (jsonData[field] && typeof jsonData[field] === 'string' && 
-                  (jsonData[field].includes('.mp3') || jsonData[field].includes('download') || jsonData[field].includes('blob:'))) {
-                downloadUrl = jsonData[field];
-                console.log(`✅ Download URL found in ${field}:`, downloadUrl);
-                break;
-              }
-            }
-            
-            // Check for progress URL that might need polling
-            if (jsonData.progressURL || jsonData.progress_url) {
-              console.log('📊 Progress URL found, might need polling:', jsonData.progressURL || jsonData.progress_url);
-            }
-            
-          } catch (parseError) {
-            // Not JSON, check if the response text itself contains a download URL
-            if (responseText.includes('.mp3') || responseText.includes('download')) {
-              console.log('🔍 Non-JSON response might contain download info:', responseText.substring(0, 200));
-            }
+          const data = JSON.parse(responseText);
+          const maybeDownloadURL = data.downloadURL;
+          if (maybeDownloadURL.length > 2) {
+            downloadUrl = maybeDownloadURL;
+            console.log('🔍 Found download URL:', downloadUrl);
           }
+
         } catch (error) {
-          console.log('❌ Error processing convert response:', error.message);
+          console.log(error);
         }
       }
       
-      // Check for download API responses
-      if (url.includes('/download') || url.includes('ytmp3.as/download') || url.includes('.mp3')) {
-        try {
-          const responseText = await response.text();
-          console.log(`🎵 Download API response from ${url}:`, responseText.substring(0, 300));
-          
-          // Check if this URL itself is the download link
-          if (url.includes('.mp3') && status === 200) {
-            downloadUrl = url;
-            console.log(`✅ Direct download URL found:`, downloadUrl);
-          } else {
-            // Try to parse response for download URL
-            try {
-              const jsonData = JSON.parse(responseText);
-              const possibleFields = ['downloadUrl', 'download_url', 'url', 'link', 'file'];
-              
-              for (const field of possibleFields) {
-                if (jsonData[field] && typeof jsonData[field] === 'string') {
-                  downloadUrl = jsonData[field];
-                  console.log(`✅ Download URL found in download response ${field}:`, downloadUrl);
-                  break;
-                }
-              }
-            } catch (parseError) {
-              // Check for direct URL in response text
-              const urlMatch = responseText.match(/https?:\/\/[^\s"'<>]+\.mp3[^\s"'<>]*/i);
-              if (urlMatch) {
-                downloadUrl = urlMatch[0];
-                console.log(`✅ Download URL extracted from text:`, downloadUrl);
-              }
-            }
-          }
-        } catch (error) {
-          console.log('❌ Error processing download response:', error.message);
-        }
-      }
-      
-      // Also check for JSON responses that might contain download URLs
-      if (contentType.includes('application/json')) {
-        try {
-          const responseText = await response.text();
-          if (responseText.includes('downloadURL') || responseText.includes('download') || responseText.includes('.mp3')) {
-            console.log('📄 JSON Response with download info:', responseText);
-            const jsonData = JSON.parse(responseText);
-            if (jsonData.downloadURL) {
-              downloadUrl = jsonData.downloadURL;
-              console.log('🔗 Extracted download URL from JSON:', downloadUrl);
-            }
-          }
-        } catch (e) {
-          // Not JSON or couldn't parse, ignore
-        }
-      }
     });
     
     // Use direct URL approach with network interception
-    console.log('🚀 Using direct URL approach with video ID:', videoId);
-    
     try {
       await page.goto(`https://ytmp3.as/AOPR/#${videoId}/mp3`, { 
         waitUntil: 'networkidle2', 
         timeout: 30000 
       });
-      console.log(`https://ytmp3.as/AOPR/#${videoId}/mp3`);
-      console.log('📄 Page loaded, waiting for network requests to capture download URL...');
       
       // Wait longer for API calls and network requests to complete
       await new Promise(resolve => setTimeout(resolve, 10000));
       
       if (downloadUrl) {
-        console.log('✅ Successfully obtained download URL via network interception:', downloadUrl);
         return {
           success: true,
           downloadUrl: downloadUrl,
@@ -237,11 +249,9 @@ async function scrapeYtmp3(youtubeUrl) {
       }
       
       // If no download URL found yet, wait a bit more and check again
-      console.log('⏳ No download URL found yet, waiting additional time...');
       await new Promise(resolve => setTimeout(resolve, 15000));
       
       if (downloadUrl) {
-        console.log('✅ Download URL found after extended wait:', downloadUrl);
         return {
           success: true,
           downloadUrl: downloadUrl,
@@ -249,52 +259,7 @@ async function scrapeYtmp3(youtubeUrl) {
         };
       }
       
-      // Capture page source for debugging
-      console.log('🔍 Capturing page source for debugging...');
-      const pageSource = await page.content();
-      console.log('📋 Page source length:', pageSource.length);
-      console.log('📋 Page source (first 2000 chars):', pageSource.substring(0, 2000));
-      
-      // Check current URL
-      const currentUrl = page.url();
-      console.log('🌐 Current URL:', currentUrl);
-      
-      // Summary of network activity
-      console.log('📊 Network Activity Summary:');
-      console.log(`📡 Total network requests: ${networkRequests.length}`);
-      console.log(`📋 All responses:`, allResponses.map(r => `${r.status} ${r.url}`).join('\n'));
-      
-      // Check for any JavaScript errors
-      const jsErrors = await page.evaluate(() => {
-        const errors = [];
-        const originalError = console.error;
-        console.error = function(...args) {
-          errors.push(args.join(' '));
-          originalError.apply(console, args);
-        };
-        return errors;
-      });
-      
-      if (jsErrors.length > 0) {
-        console.log('⚠️ JavaScript errors found:', jsErrors);
-      }
-      
-      // Check if page has any forms or interactive elements
-      const pageElements = await page.evaluate(() => {
-        return {
-          forms: document.querySelectorAll('form').length,
-          inputs: document.querySelectorAll('input').length,
-          buttons: document.querySelectorAll('button').length,
-          scripts: document.querySelectorAll('script').length,
-          title: document.title,
-          bodyText: document.body ? document.body.textContent.substring(0, 500) : 'No body'
-        };
-      });
-      
-      console.log('🔍 Page elements:', JSON.stringify(pageElements, null, 2));
-      
     } catch (error) {
-      console.log('⚠️ Direct URL approach failed:', error.message);
       throw error;
     }
     
@@ -302,7 +267,6 @@ async function scrapeYtmp3(youtubeUrl) {
     throw new Error('No download URL was captured through network interception. The video might be unavailable or the service might be down.');
     
   } catch (error) {
-    console.error('Scraping error:', error);
     return {
       success: false,
       error: error.message
@@ -337,7 +301,7 @@ router.get('/', async (req, res) => {
     });
   }
   
-  console.log(`[${new Date().toISOString()}] Starting conversion for video ID: ${videoId}`);
+
   
   try {
     // Set a timeout for the entire operation (5 minutes)
@@ -347,14 +311,11 @@ router.get('/', async (req, res) => {
     
     const conversionPromise = (async () => {
       // Scrape ytmp3.as to get download link
-      console.log('Step 1: Starting web scraping...');
       const result = await scrapeYtmp3(url);
       
       if (!result.success) {
         throw new Error(result.error || 'Conversion failed for unknown reason');
       }
-      
-      console.log('Step 2: Conversion successful, got download URL:', result.downloadUrl);
       
       return { downloadUrl: result.downloadUrl, title: result.title };
     })();
@@ -374,12 +335,10 @@ router.get('/', async (req, res) => {
       videoId: videoId
     });
     
-    const duration = Date.now() - startTime;
-    console.log(`[${new Date().toISOString()}] Conversion completed successfully in ${duration}ms for: ${title}`);
+
     
   } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error(`[${new Date().toISOString()}] Conversion failed after ${duration}ms:`, error.message);
+
     
     // Determine appropriate error response based on error type
     let statusCode = 500;
