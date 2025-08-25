@@ -17,12 +17,24 @@ function extractVideoId(url) {
 
 // Helper function to sanitize filename
 function sanitizeFilename(filename) {
-  return filename.replace(/[^a-zA-Z0-9\s\-_]/g, '').trim();
+  return filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
 
-// Main scraping function
+// Helper function to extract YouTube video ID
+function extractVideoId(url) {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+}
+
+// Main scraping function using network interception
 async function scrapeYtmp3(youtubeUrl) {
   let browser;
+  const videoId = extractVideoId(youtubeUrl);
+  if (!videoId) {
+    throw new Error('Invalid YouTube URL - could not extract video ID');
+  }
+  
   try {
     // Launch Puppeteer browser with enhanced error handling
     browser = await puppeteer.launch({
@@ -65,6 +77,120 @@ async function scrapeYtmp3(youtubeUrl) {
     // Set viewport for consistency
     await page.setViewport({ width: 1280, height: 720 });
     
+    // Set up network interception to capture download URLs
+    let downloadUrl = null;
+    let capturedRequests = [];
+    
+    await page.setRequestInterception(true);
+    
+    page.on('request', (request) => {
+      const url = request.url();
+      // Log all requests for debugging
+      if (url.includes('download') || url.includes('.mp3') || url.includes('convert')) {
+        console.log('🔍 Intercepted request:', url);
+        capturedRequests.push(url);
+      }
+      request.continue();
+    });
+    
+    page.on('response', async (response) => {
+      const url = response.url();
+      const contentType = response.headers()['content-type'] || '';
+      
+      // Look for MP3 download URLs in responses
+      if (contentType.includes('audio/mpeg') || 
+          url.includes('.mp3') || 
+          (contentType.includes('application/octet-stream') && url.includes('download'))) {
+        console.log('🎵 Found potential download URL:', url);
+        console.log('📋 Content-Type:', contentType);
+        downloadUrl = url;
+      }
+      
+      // Check convert API responses for download URLs
+      if (url.includes('/convert') || url.includes('/api/v1/convert')) {
+        try {
+          const responseText = await response.text();
+          console.log('🔄 Convert API Response:', responseText);
+          
+          // Try to parse as JSON
+          try {
+            const jsonData = JSON.parse(responseText);
+            console.log('📄 Parsed JSON:', jsonData);
+            
+            // Look for download URL in various possible fields
+            if (jsonData.downloadURL) {
+              downloadUrl = jsonData.downloadURL;
+              console.log('🔗 Found downloadURL:', downloadUrl);
+            } else if (jsonData.download_url) {
+              downloadUrl = jsonData.download_url;
+              console.log('🔗 Found download_url:', downloadUrl);
+            } else if (jsonData.url) {
+              downloadUrl = jsonData.url;
+              console.log('🔗 Found url:', downloadUrl);
+            } else if (jsonData.link) {
+              downloadUrl = jsonData.link;
+              console.log('🔗 Found link:', downloadUrl);
+            }
+          } catch (parseError) {
+            // Not JSON, check if it's a direct URL
+            if (responseText.includes('http') && (responseText.includes('.mp3') || responseText.includes('download'))) {
+              // Extract URL from text response
+              const urlMatch = responseText.match(/(https?:\/\/[^\s"'<>]+)/g);
+              if (urlMatch && urlMatch[0]) {
+                downloadUrl = urlMatch[0];
+                console.log('🔗 Extracted URL from text response:', downloadUrl);
+              }
+            }
+          }
+        } catch (e) {
+          console.log('⚠️ Error reading convert API response:', e.message);
+        }
+      }
+      
+      // Also check for JSON responses that might contain download URLs
+      if (contentType.includes('application/json')) {
+        try {
+          const responseText = await response.text();
+          if (responseText.includes('downloadURL') || responseText.includes('download') || responseText.includes('.mp3')) {
+            console.log('📄 JSON Response with download info:', responseText);
+            const jsonData = JSON.parse(responseText);
+            if (jsonData.downloadURL) {
+              downloadUrl = jsonData.downloadURL;
+              console.log('🔗 Extracted download URL from JSON:', downloadUrl);
+            }
+          }
+        } catch (e) {
+          // Not JSON or couldn't parse, ignore
+        }
+      }
+    });
+    
+    // Try direct API approach first
+    console.log('🚀 Trying direct API approach with video ID:', videoId);
+    try {
+      await page.goto(`https://ytmp3.as/AOPR/#${videoId}/mp3`, { 
+        waitUntil: 'networkidle2', 
+        timeout: 30000 
+      });
+      
+      // Wait a bit for any API calls to complete
+      await page.waitForTimeout(5000);
+      
+      if (downloadUrl) {
+        console.log('✅ Successfully obtained download URL via direct API:', downloadUrl);
+        return {
+          success: true,
+          downloadUrl: downloadUrl,
+          title: sanitizeFilename(`youtube_${videoId}`)
+        };
+      }
+    } catch (error) {
+      console.log('⚠️ Direct API approach failed:', error.message);
+    }
+    
+    // Fallback to form submission approach
+    console.log('🔄 Falling back to form submission approach');
+    
     // Navigate to ytmp3.as with retry logic
     let navigationSuccess = false;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -88,11 +214,12 @@ async function scrapeYtmp3(youtubeUrl) {
     
     // Wait for the input field and fill it with YouTube URL
     try {
-      await page.waitForSelector('input[type="text"]', { timeout: 15000 });
+      // Wait for the specific input field with ID 'v'
+      await page.waitForSelector('#v', { timeout: 15000 });
       
       // Clear any existing content and type the URL
-      await page.click('input[type="text"]', { clickCount: 3 }); // Select all
-      await page.type('input[type="text"]', youtubeUrl, { delay: 100 });
+      await page.click('#v', { clickCount: 3 }); // Select all
+      await page.type('#v', youtubeUrl, { delay: 100 });
       
       // Wait a moment for the input to register
       await page.waitForTimeout(1000);
@@ -103,11 +230,11 @@ async function scrapeYtmp3(youtubeUrl) {
     
     // Click the convert button with error handling
     try {
-      // Wait for the MP3 button (type="button" with text "MP3")
-      await page.waitForSelector('button[type="button"]', { timeout: 10000 });
+      // Wait for the MP3 button with ID 'f'
+      await page.waitForSelector('#f', { timeout: 10000 });
       
       // Find and click the MP3 button specifically
-      const mp3Button = await page.$('button[type="button"]');
+      const mp3Button = await page.$('#f');
       if (mp3Button) {
         const buttonText = await page.evaluate(btn => btn.textContent.trim(), mp3Button);
         if (buttonText === 'MP3') {
@@ -263,52 +390,7 @@ async function scrapeYtmp3(youtubeUrl) {
   }
 }
 
-// Download file from URL with retry logic
-async function downloadFile(url, filename) {
-  const maxRetries = 3;
-  let lastError;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      console.log(`Downloading file, attempt ${attempt + 1}/${maxRetries}...`);
-      
-      const response = await fetch(url, {
-        timeout: 30000, // 30 second timeout
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const contentLength = response.headers.get('content-length');
-      if (contentLength && parseInt(contentLength) < 1000) {
-        throw new Error('Downloaded file appears to be too small (likely an error page)');
-      }
-      
-      const buffer = await response.buffer();
-      
-      if (buffer.length < 1000) {
-        throw new Error('Downloaded file is too small (likely corrupted or an error)');
-      }
-      
-      console.log(`File downloaded successfully, size: ${buffer.length} bytes`);
-      return buffer;
-      
-    } catch (error) {
-      lastError = error;
-      console.log(`Download attempt ${attempt + 1} failed:`, error.message);
-      
-      if (attempt < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-      }
-    }
-  }
-  
-  throw new Error(`Failed to download file after ${maxRetries} attempts: ${lastError.message}`);
-}
+// Note: downloadFile function removed since we now return download URLs instead of downloading files
 
 // Main route handler with comprehensive error handling
 router.get('/', async (req, res) => {
@@ -348,30 +430,25 @@ router.get('/', async (req, res) => {
         throw new Error(result.error || 'Conversion failed for unknown reason');
       }
       
-      console.log('Step 2: Conversion successful, downloading file...');
+      console.log('Step 2: Conversion successful, got download URL:', result.downloadUrl);
       
-      // Download the MP3 file
-      const audioBuffer = await downloadFile(result.downloadUrl, result.title);
-      
-      return { audioBuffer, title: result.title };
+      return { downloadUrl: result.downloadUrl, title: result.title };
     })();
     
-    const { audioBuffer, title } = await Promise.race([conversionPromise, timeoutPromise]);
+    const { downloadUrl, title } = await Promise.race([conversionPromise, timeoutPromise]);
     
-    // Validate the downloaded file
-    if (!audioBuffer || audioBuffer.length === 0) {
-      throw new Error('Downloaded file is empty or corrupted');
+    // Validate the download URL
+    if (!downloadUrl) {
+      throw new Error('Download URL is empty or invalid');
     }
     
-    // Set response headers
-    res.header('Access-Control-Expose-Headers', 'X-Video-Title');
-    res.header('X-Video-Title', title);
-    res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
-    res.header('Content-Type', 'audio/mpeg');
-    res.header('Content-Length', audioBuffer.length.toString());
-    
-    // Send the file
-    res.send(audioBuffer);
+    // Return the download URL in JSON response
+    res.json({
+      success: true,
+      downloadUrl: downloadUrl,
+      title: title,
+      videoId: videoId
+    });
     
     const duration = Date.now() - startTime;
     console.log(`[${new Date().toISOString()}] Conversion completed successfully in ${duration}ms for: ${title}`);
@@ -393,14 +470,14 @@ router.get('/', async (req, res) => {
       statusCode = 503;
       errorCode = 'SERVICE_UNAVAILABLE';
       userMessage = 'The conversion service is currently unavailable. Please try again later.';
-    } else if (error.message.includes('Download link not found')) {
+    } else if (error.message.includes('Download link not found') || error.message.includes('Could not find download URL')) {
       statusCode = 422;
       errorCode = 'CONVERSION_FAILED';
       userMessage = 'Unable to convert this video. It may be private, restricted, or unavailable.';
-    } else if (error.message.includes('download') || error.message.includes('fetch')) {
+    } else if (error.message.includes('Download URL is empty')) {
       statusCode = 502;
-      errorCode = 'DOWNLOAD_FAILED';
-      userMessage = 'Failed to download the converted file. Please try again.';
+      errorCode = 'URL_EXTRACTION_FAILED';
+      userMessage = 'Failed to extract the download URL. Please try again.';
     }
     
     res.status(statusCode).json({ 
