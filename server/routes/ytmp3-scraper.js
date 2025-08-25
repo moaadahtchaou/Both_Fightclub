@@ -35,8 +35,24 @@ async function scrapeYtmp3(youtubeUrl) {
         '--no-zygote',
         '--disable-gpu',
         '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
+        '--disable-features=VizDisplayCompositor',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--disable-extensions',
+        '--disable-default-apps',
+        '--disable-sync',
+        '--disable-translate',
+        '--hide-scrollbars',
+        '--mute-audio',
+        '--no-default-browser-check',
+        '--no-pings',
+        '--single-process',
+        '--disable-features=HttpsFirstBalancedModeAutoEnable'
       ],
+      headless: 'new', // Use new headless mode
       timeout: 30000 // 30 second timeout for browser launch
     });
 
