@@ -22,8 +22,11 @@ export const API_BASE_URL = getBaseUrl();
 // API endpoints
 export const API_ENDPOINTS = {
   // User authentication endpoints
-  LOGIN: '/users/login',
+  LOGIN: '/auth/login',
   REGISTER: '/users/register',
+  VERIFY: '/auth/verify',
+  LOGOUT: '/auth/logout',
+  USE_CREDITS: '/auth/use-credits',
   USERS: '/users',
   
   // Media endpoints

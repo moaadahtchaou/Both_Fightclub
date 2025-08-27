@@ -7,6 +7,9 @@ const pipeline = promisify(require('stream').pipeline);
 const fetch = require('node-fetch');
 const axios = require('axios');
 const FormData = require('form-data');
+const { Audio } = require('../models');
+const User = require('../models/User');
+const { verifyToken } = require('./auth');
 
 const router = express.Router();
 
@@ -256,12 +259,21 @@ async function scrapeYtmp3(youtubeUrl) {
 
 
 
+// Test route without authentication
+router.get('/test-no-auth', async (req, res) => {
+  console.log('🔓 Test route accessed without authentication');
+  res.json({ success: true, message: 'No auth required' });
+});
+
 // New route for complete download and upload workflow
-router.get('/download-and-upload', async (req, res) => {
+router.get('/download-and-upload', verifyToken, async (req, res) => {
   const startTime = Date.now();
-  const { url } = req.query;
   
-  // Validate YouTube URL
+  console.log(`🔐 Authentication check - User ID: ${req.user?.id}, Username: ${req.user?.username}`);
+  
+  const { url } = req.query;
+   
+   // Validate YouTube URL
   if (!url) {
     return res.status(400).json({ 
       error: 'YouTube URL is required',
@@ -278,7 +290,60 @@ router.get('/download-and-upload', async (req, res) => {
   }
   
   try {
-    console.log('🚀 Starting complete workflow for:', url);
+    // Check user credits before processing
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+    
+    if (user.credits < 1) {
+      return res.status(402).json({ 
+        error: 'Insufficient credits. You need at least 1 credit to download audio.',
+        code: 'INSUFFICIENT_CREDITS',
+        currentCredits: user.credits
+      });
+    }
+    
+    // Check for existing audio with the same YouTube video ID
+    console.log(`🔍 Checking for duplicate YouTube video ID: ${videoId}`);
+    const existingAudio = await Audio.findOne({ youtubeVideoId: videoId });
+    
+    if (existingAudio) {
+      console.log(`📋 Found existing audio for video ID: ${videoId}`);
+      
+      // Check if user is already in sharedUsers array
+      const isAlreadyShared = existingAudio.sharedUsers.includes(user._id);
+      
+      if (!isAlreadyShared) {
+        // Add user to sharedUsers array
+        existingAudio.sharedUsers.push(user._id);
+        await existingAudio.save();
+        console.log(`✅ Added user ${user.username} to shared users for existing audio`);
+      } else {
+        console.log(`ℹ️ User ${user.username} already has access to this audio`);
+      }
+      
+      // Return existing audio without deducting credits
+      return res.json({
+        success: true,
+        isShared: true,
+        downloadUrl: null, // Not applicable for shared content
+        catboxUrl: existingAudio.uploadUrl,
+        title: existingAudio.originalName,
+        videoId: videoId,
+        processingTime: 0,
+        user: {
+          username: user.username,
+          remainingCredits: user.credits // No credits deducted
+        },
+        message: isAlreadyShared ? 'You already have access to this audio file.' : 'This audio already exists and has been shared with you.'
+      });
+    }
+    
+    console.log(`🚀 Starting complete workflow for: ${url} (User: ${user.username}, Credits: ${user.credits})`);
     
     // Set a timeout for the entire operation (8 minutes)
     const timeoutPromise = new Promise((_, reject) => {
@@ -311,14 +376,57 @@ router.get('/download-and-upload', async (req, res) => {
     
     const result = await Promise.race([workflowPromise, timeoutPromise]);
     
-    // Return the final result with Catbox URL
+    // Deduct credits and save to database
+    try {
+      console.log(`🔍 Before credit deduction - User: ${user.username}, Credits: ${user.credits}`);
+      // Deduct 1 credit from user
+      await user.useCredits(1, `YouTube audio download: ${result.title || 'Unknown title'}`);
+      
+      // Refresh user data to get updated credits
+      const updatedUser = await User.findById(user._id);
+      console.log(`💳 Deducted 1 credit from ${user.username}. Remaining: ${updatedUser.credits}`);
+      
+      // Save audio record to database
+      const audioRecord = new Audio({
+        user: user._id,
+        originalName: result.title || `YouTube Video ${videoId}`,
+        source: 'youtube',
+        sourceUrl: url,
+        youtubeVideoId: videoId,
+        uploadUrl: result.catboxUrl,
+        sharedUsers: [user._id], // Initialize with the original uploader
+        ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
+        tags: ['youtube', 'download'],
+        isPublic: false
+      });
+      
+      await audioRecord.save();
+      console.log('✅ Audio record saved to database');
+    } catch (dbError) {
+      console.error('⚠️ Failed to save to database or deduct credits:', dbError.message);
+      // If credit deduction fails, we should not continue
+      if (dbError.message.includes('Insufficient credits')) {
+        return res.status(402).json({
+          error: 'Insufficient credits',
+          code: 'INSUFFICIENT_CREDITS',
+          currentCredits: user.credits
+        });
+      }
+      // Continue with response even if database save fails, but credits were deducted
+    }
+    
+    // Return the final result with Catbox URL and user info
     res.json({
       success: true,
       downloadUrl: result.downloadUrl,
       catboxUrl: result.catboxUrl,
       title: result.title,
       videoId: videoId,
-      processingTime: Date.now() - startTime
+      processingTime: Date.now() - startTime,
+      user: {
+        username: user.username,
+        remainingCredits: user.credits - 1
+      }
     });
     
     console.log('🎉 Complete workflow finished successfully');
