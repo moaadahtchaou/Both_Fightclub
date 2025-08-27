@@ -1,5 +1,6 @@
 import React, { createContext, useContext, type ReactNode } from 'react';
 import { 
+  useLoginMutation, 
   useLogoutMutation, 
   useVerifyTokenQuery, 
   useUseCredits,
@@ -46,6 +47,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { user, isLoading, isAuthenticated, hasPermission, isAdmin } = useUser();
+  const loginMutation = useLoginMutation();
   const logoutMutation = useLogoutMutation();
   const useCreditsMutation = useUseCredits();
   const { refetch: refetchUser } = useVerifyTokenQuery();
@@ -80,7 +82,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { isValid: true };
   };
 
-
+  // Sanitize input to prevent XSS
+  const sanitizeInput = (input: string): string => {
+    return input.trim().replace(/[<>"'&]/g, (match) => {
+      const entities: { [key: string]: string } = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        '&': '&amp;'
+      };
+      return entities[match] || match;
+    });
+  };
 
   const login = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
@@ -95,10 +109,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, message: passwordValidation.message };
       }
 
+      // Sanitize inputs
+      const sanitizedUsername = sanitizeInput(username);
+      const sanitizedPassword = password; // Don't sanitize password as it might contain special chars
 
-
-
-
+      const result = await loginMutation.mutateAsync({
+        username: sanitizedUsername,
+        password: sanitizedPassword
+      });
+      if (result.success) {
+        
+      }
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
