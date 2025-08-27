@@ -2,25 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Audio = require('../models/Audio');
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
+const {verifyToken} = require('./auth');
 
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
-  }
-  
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(403).json({ message: 'Invalid or expired token' });
-  }
-};
 
 // GET /api/audio/public - Get all public audio files
 router.get('/public', async (req, res) => {
