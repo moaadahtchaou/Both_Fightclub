@@ -53,13 +53,11 @@ const Dashboard: React.FC = () => {
   const [copiedUrls, setCopiedUrls] = useState<Set<string>>(new Set());
   
   // New state for AudioFile interface
-  const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [publicAudioFiles, setPublicAudioFiles] = useState<AudioFile[]>([]);
   const [userAudioFiles, setUserAudioFiles] = useState<AudioFile[]>([]);
   
   // Legacy state for backward compatibility
   const [publicAudioLinks, setPublicAudioLinks] = useState<PublicAudioLink[]>([]);
-  const [legacyUserAudioFiles, setLegacyUserAudioFiles] = useState<UserAudio[]>([]);
   const [editingPublicLink, setEditingPublicLink] = useState<PublicAudioLink | null>(null);
   const [newPublicLink, setNewPublicLink] = useState<Partial<PublicAudioLink>>({ title: '', musiqueUrl: '', audioUrl: '', howToAdd: '' });
   
@@ -144,22 +142,12 @@ const Dashboard: React.FC = () => {
       
       setUserAudioFiles(validatedData);
       
-      // Legacy compatibility
-      const legacyData = validatedData.map(audio => ({
-        id: audio._id,
-        title: audio.originalName,
-        filename: audio.originalName,
-        url: audio.uploadUrl,
-        uploadDate: new Date(audio.createdAt).toISOString().split('T')[0]
-      }));
-      setLegacyUserAudioFiles(legacyData);
       
     } catch (err) {
       console.error('Error fetching user audio files:', err);
       setError('Failed to load your audio files. Please check your connection and try again.');
       // Clear data on error
       setUserAudioFiles([]);
-      setLegacyUserAudioFiles([]);
     }
   };
 
@@ -254,13 +242,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handlePlayPause = (audioId: string) => {
-    if (currentlyPlaying === audioId) {
-      setCurrentlyPlaying(null);
-    } else {
-      setCurrentlyPlaying(audioId);
-    }
-  };
+
 
   // Generate Transformice-compatible URL
   const generateTransformiceUrl = (uploadUrl: string): string => {
@@ -360,27 +342,7 @@ const Dashboard: React.FC = () => {
 
   // Legacy function for backward compatibility - removed add functionality
 
-  const handleEditPublicLink = (link: PublicAudioLink) => {
-    setEditingPublicLink(link);
-    setNewPublicLink({
-      title: link.title,
-      musiqueUrl: link.musiqueUrl,
-      audioUrl: link.audioUrl,
-      howToAdd: link.howToAdd
-    });
-  };
-
-  const handleUpdatePublicLink = () => {
-    if (editingPublicLink && newPublicLink.title && newPublicLink.audioUrl) {
-      setPublicAudioLinks(publicAudioLinks.map(link => 
-        link.id === editingPublicLink.id 
-          ? { ...editingPublicLink, ...newPublicLink }
-          : link
-      ));
-      setEditingPublicLink(null);
-      setNewPublicLink({ title: '', musiqueUrl: '', audioUrl: '', howToAdd: '' });
-    }
-  };
+ 
 
   // Audio deletion is not available in this interface
 
