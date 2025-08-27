@@ -29,37 +29,18 @@ interface AudioFile {
   updatedAt: string;
 }
 
-// Legacy interfaces for backward compatibility
-interface PublicAudioLink {
-  id: string;
-  title: string;
-  musiqueUrl: string;
-  audioUrl: string;
-  howToAdd: string;
-}
-
-interface UserAudio {
-  id: string;
-  title: string;
-  filename: string;
-  url: string;
-  uploadDate: string;
-}
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'public' | 'myAudio'>('public');
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+
   const [copiedUrls, setCopiedUrls] = useState<Set<string>>(new Set());
   
   // New state for AudioFile interface
   const [publicAudioFiles, setPublicAudioFiles] = useState<AudioFile[]>([]);
   const [userAudioFiles, setUserAudioFiles] = useState<AudioFile[]>([]);
   
-  // Legacy state for backward compatibility
-  const [publicAudioLinks, setPublicAudioLinks] = useState<PublicAudioLink[]>([]);
-  const [editingPublicLink, setEditingPublicLink] = useState<PublicAudioLink | null>(null);
-  const [newPublicLink, setNewPublicLink] = useState<Partial<PublicAudioLink>>({ title: '', musiqueUrl: '', audioUrl: '', howToAdd: '' });
+
   
   // Form and UI state - removed add/edit functionality
   
@@ -98,22 +79,13 @@ const Dashboard: React.FC = () => {
       
       setPublicAudioFiles(validatedData);
       
-      // Legacy compatibility
-      const legacyData = validatedData.map(audio => ({
-        id: audio._id,
-        title: audio.originalName,
-        musiqueUrl: `/musique/${audio.originalName.toLowerCase().replace(/\s+/g, '-')}`,
-        audioUrl: audio.uploadUrl,
-        howToAdd: `Source: ${audio.source}${audio.sourceUrl ? ` (${audio.sourceUrl})` : ''}`
-      }));
-      setPublicAudioLinks(legacyData);
+
       
     } catch (err) {
       console.error('Error fetching public audio files:', err);
       setError('Failed to load public audio files. Please check your connection and try again.');
       // Clear data on error
       setPublicAudioFiles([]);
-      setPublicAudioLinks([]);
     }
   };
 
