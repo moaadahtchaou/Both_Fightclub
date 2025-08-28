@@ -63,6 +63,94 @@ function extractVideoId(url) {
   return match ? match[1] : null;
 }
 
+// Helper function to clean YouTube URL by removing extra parameters
+function cleanYouTubeUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    // Keep only essential parameters for YouTube URLs
+    const videoId = urlObj.searchParams.get('v');
+    if (videoId && (urlObj.hostname === 'www.youtube.com' || urlObj.hostname === 'youtube.com')) {
+      return `https://www.youtube.com/watch?v=${videoId}`;
+    }
+    // For youtu.be URLs, keep as is
+    if (urlObj.hostname === 'youtu.be') {
+      return url;
+    }
+    return url;
+  } catch (error) {
+    console.log('⚠️ Error cleaning URL, using original:', error.message);
+    return url;
+  }
+}
+
+// Function to download using EzConv API
+async function downloadWithEzConvAPI(youtubeUrl) {
+  try {
+    // Clean the YouTube URL to remove extra parameters
+    const cleanedUrl = cleanYouTubeUrl(youtubeUrl);
+    console.log('🔄 Starting EzConv API download for:', cleanedUrl);
+    if (cleanedUrl !== youtubeUrl) {
+      console.log('🧹 URL cleaned from:', youtubeUrl, 'to:', cleanedUrl);
+    }
+    
+    // Step 1: Get authentication token
+    console.log('🔑 Getting EzConv authentication token...');
+    const tokenResponse = await axios.post('https://ezconv.com/api/token', {}, {
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      timeout: 30000 // 30 second timeout
+    });
+    
+    if (!tokenResponse.data || !tokenResponse.data.token) {
+      throw new Error('Failed to obtain authentication token from EzConv');
+    }
+    
+    const token = tokenResponse.data.token;
+    console.log('✅ EzConv token obtained successfully');
+    
+    // Step 2: Convert the YouTube URL
+    console.log('🔄 Converting YouTube URL with EzConv...');
+    const convertResponse = await axios.post('https://ds1.ezsrv.net/api/convert', {
+      url: cleanedUrl,
+      quality: "320",
+      trim: false,
+      startT: 0,
+      endT: 0,
+      token: token
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      timeout: 60000 // 60 second timeout
+    });
+    
+    if (convertResponse.data && convertResponse.data.status === 'done' && convertResponse.data.url) {
+      console.log('✅ EzConv API download successful');
+
+      
+      return {
+        success: true,
+        downloadUrl: convertResponse.data.url,
+        title: convertResponse.data.title || 'Unknown Title',
+        format: '320kbps MP3',
+        method: 'ezconv'
+      };
+    } else {
+      throw new Error('Invalid response from EzConv API or conversion not completed');
+    }
+  } catch (error) {
+    console.error('❌ EzConv API download failed:', error.message);
+    return {
+      success: false,
+      error: error.message,
+      method: 'ezconv'
+    };
+  }
+}
+
 
 
 
@@ -223,7 +311,8 @@ async function scrapeYtmp3(youtubeUrl) {
         return {
           success: true,
           downloadUrl: downloadUrl,
-          title: title
+          title: title,
+          method: 'ytmp3'
         };
       }
       
@@ -234,7 +323,8 @@ async function scrapeYtmp3(youtubeUrl) {
         return {
           success: true,
           downloadUrl: downloadUrl,
-          title: title
+          title: title,
+          method: 'ytmp3'
         };
       }
       
@@ -271,7 +361,7 @@ router.get('/download-and-upload', verifyToken, async (req, res) => {
   
   console.log(`🔐 Authentication check - User ID: ${req.user?.id}, Username: ${req.user?.username}`);
   
-  const { url } = req.query;
+  const { url, method = 'auto' } = req.query; // Default to 'auto' for fallback
    
    // Validate YouTube URL
   if (!url) {
@@ -351,15 +441,37 @@ router.get('/download-and-upload', verifyToken, async (req, res) => {
     });
     
     const workflowPromise = (async () => {
-      // Step 1: Get download URL from YouTube
-      console.log('📥 Step 1: Getting YouTube download URL...');
-      const downloadResult = await scrapeYtmp3(url);
+      // Step 1: Get download URL from YouTube using selected method
+      console.log(`📥 Step 1: Getting YouTube download URL using method: ${method}...`);
+      
+      let downloadResult;
+      
+      if (method === 'ezconv') {
+        // Use EzConv API only
+        downloadResult = await downloadWithEzConvAPI(url);
+      } else if (method === 'ytmp3') {
+        // Use Ytmp3 scraping only
+        downloadResult = await scrapeYtmp3(url);
+      } else {
+        // Auto mode: Try EzConv first, fallback to Ytmp3
+        console.log('🔄 Trying EzConv API first...');
+        downloadResult = await downloadWithEzConvAPI(url);
+        
+        if (!downloadResult.success) {
+          console.log('⚠️ EzConv API failed, falling back to Ytmp3 scraping...');
+          downloadResult = await scrapeYtmp3(url);
+          
+          if (!downloadResult.success) {
+            throw new Error(`Both methods failed. EzConv: ${downloadResult.error}. Ytmp3: ${downloadResult.error}`);
+          }
+        }
+      }
       
       if (!downloadResult.success) {
         throw new Error(downloadResult.error || 'YouTube download failed');
       }
       
-      console.log('✅ Step 1 completed: Download URL obtained');
+      console.log(`✅ Step 1 completed: Download URL obtained using ${downloadResult.method || method}`);
       
       // Step 2: Upload to Catbox
       console.log('📤 Step 2: Uploading to Catbox...');
@@ -370,7 +482,9 @@ router.get('/download-and-upload', verifyToken, async (req, res) => {
       return {
         downloadUrl: downloadResult.downloadUrl,
         catboxUrl: catboxUrl,
-        title: downloadResult.title
+        title: downloadResult.title,
+        method: downloadResult.method || method,
+        format: downloadResult.format
       };
     })();
     
@@ -422,6 +536,8 @@ router.get('/download-and-upload', verifyToken, async (req, res) => {
       catboxUrl: result.catboxUrl,
       title: result.title,
       videoId: videoId,
+      method: result.method,
+      format: result.format,
       processingTime: Date.now() - startTime,
       user: {
         username: user.username,
