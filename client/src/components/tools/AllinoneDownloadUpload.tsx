@@ -23,6 +23,7 @@ const AllinoneDownloadUpload: React.FC<AllinoneDownloadUploadProps> = ({ classNa
   
   // YouTube Download states
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [downloadMethod, setDownloadMethod] = useState('auto'); // 'auto', 'ezconv', 'ytmp3'
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState('');
   const [urlValidationError, setUrlValidationError] = useState('');
@@ -68,8 +69,8 @@ const AllinoneDownloadUpload: React.FC<AllinoneDownloadUploadProps> = ({ classNa
         throw new Error('Insufficient credits. You need at least 1 credit to download.');
       }
 
-      // Call the new all-in-one endpoint with authentication
-      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.ALLINONE)}?url=${encodeURIComponent(youtubeUrl)}`, {
+      // Call the new all-in-one endpoint with authentication and method parameter
+      const response = await fetch(`${buildApiUrl(API_ENDPOINTS.ALLINONE)}?url=${encodeURIComponent(youtubeUrl)}&method=${downloadMethod}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       });
@@ -82,15 +83,18 @@ const AllinoneDownloadUpload: React.FC<AllinoneDownloadUploadProps> = ({ classNa
       const result = await response.json();
       
       if (result.success) {
+        // Store download method and format info
+        
+        
         if (result.isShared) {
           // Handle shared audio (duplicate detected)
-          setDownloadStatus('🔄 Duplicate detected - using existing audio!');
+          setDownloadStatus(`🔄 Duplicate detected - using existing audio! (Method: ${result.method || 'unknown'})`);
           setUploadStatus('✅ Audio shared with you successfully!');
           setUploadedUrl(result.catboxUrl);
           setProcessStatus(`📋 ${result.message || 'This audio already exists and has been shared with you.'}`);
         } else {
           // Handle new download
-          setDownloadStatus('✅ Download completed successfully!');
+          setDownloadStatus(`✅ Download completed successfully! (Method: ${result.method || 'unknown'}, Format: ${result.format || 'unknown'})`);
           setUploadStatus('✅ File uploaded to Catbox successfully!');
           setUploadedUrl(result.catboxUrl);
           setProcessStatus('🎉 Process completed! Your file is ready to share.');
@@ -134,6 +138,7 @@ const AllinoneDownloadUpload: React.FC<AllinoneDownloadUploadProps> = ({ classNa
 
   const clearAll = () => {
     setYoutubeUrl('');
+    setDownloadMethod('auto');
     setDownloadStatus('');
     setUploadStatus('');
     setUploadedUrl('');
@@ -226,6 +231,35 @@ const AllinoneDownloadUpload: React.FC<AllinoneDownloadUploadProps> = ({ classNa
               <span>Valid YouTube URL detected</span>
             </div>
           )}
+        </div>
+        
+        {/* Download Method Selection */}
+        <div className="space-y-3">
+          <label className="flex items-center space-x-2 text-sm font-semibold text-gray-300">
+            <ArrowPathIcon className="w-4 h-4 text-purple-400" />
+            <span>Download Method</span>
+          </label>
+          <div className="relative">
+            <select
+              value={downloadMethod}
+              onChange={(e) => setDownloadMethod(e.target.value)}
+              className="w-full px-6 py-4 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 appearance-none cursor-pointer"
+            >
+              <option value="auto" className="bg-gray-800 text-white">Auto (Try EzConv first, fallback to Ytmp3)</option>
+              <option value="ezconv" className="bg-gray-800 text-white">EzConv API (Fast & Reliable)</option>
+              <option value="ytmp3" className="bg-gray-800 text-white">Ytmp3 Scraper (Traditional Method)</option>
+            </select>
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+          <div className="text-xs text-gray-400 space-y-1">
+            <div><strong>Auto:</strong> Intelligent method selection with automatic fallback</div>
+            <div><strong>EzConv:</strong> Modern API with high success rate and quality</div>
+            <div><strong>Ytmp3:</strong> Traditional scraping method as backup option</div>
+          </div>
         </div>
         
         {/* Action Buttons */}
