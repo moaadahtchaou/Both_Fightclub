@@ -18,8 +18,8 @@ const Login = () => {
   const location = useLocation();
   const { login, isAuthenticated, isLoading } = useAuth();
   
-  const MAX_LOGIN_ATTEMPTS = 5;
-  const LOCK_DURATION = 15 * 60 * 1000; // 15 minutes
+  const MAX_LOGIN_ATTEMPTS = 10;
+  const LOCK_DURATION = 2 * 60 * 1000; // 2 minutes
 
   // Input validation functions
   const validateUsername = (value: string): string | undefined => {
@@ -73,7 +73,7 @@ const Login = () => {
       setIsLocked(true);
       setLockTimeRemaining(LOCK_DURATION);
       localStorage.setItem('loginLockTime', (Date.now() + LOCK_DURATION).toString());
-      setError(`Account temporarily locked due to too many failed attempts. Try again in 15 minutes.`);
+      setError(`Account temporarily locked due to too many failed attempts. Try again in 2 minutes.`);
     }
   };
 
@@ -117,7 +117,7 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      const from = (location.state as any)?.from?.pathname || '/admin';
+      const from = (location.state as any)?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, navigate, location]);
@@ -157,7 +157,7 @@ const Login = () => {
         localStorage.removeItem('loginLockTime');
         
         // Navigate to intended destination
-        const from = (location.state as any)?.from?.pathname || '/admin';
+        const from = (location.state as any)?.from?.pathname || '/dashboard';
         navigate(from, { replace: true });
       } else {
         setError(result.message || 'Login failed');

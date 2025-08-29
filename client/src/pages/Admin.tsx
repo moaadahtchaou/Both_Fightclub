@@ -593,6 +593,13 @@ const Admin = () => {
                 <span>System Online</span>
               </div>
               <button
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center space-x-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 px-4 py-2 rounded-lg transition-all duration-200 border border-blue-500/30"
+              >
+                <UserIcon className="w-4 h-4" />
+                <span>Dashboard</span>
+              </button>
+              <button
                 onClick={handleLogout}
                 className="flex items-center space-x-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 px-4 py-2 rounded-lg transition-all duration-200 border border-red-500/30"
               >
