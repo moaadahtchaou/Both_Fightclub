@@ -13,6 +13,7 @@ const usersRoute = require('./routes/users')
 const audioRoute = require('./routes/audio')
 const bcrypt = require('bcryptjs')
 const User = require('./models/User')
+const instagramRoute = require('./routes/instagram')
 
 const cors = require('cors')
 const corsOptions = require('./config/corsOptions')
@@ -79,6 +80,7 @@ app.use('/api/test', testRoute)
 app.use('/api/auth', authRoute)
 app.use('/api/users', usersRoute)
 app.use('/api/audio', audioRoute)
+app.use('/api/instagram', instagramRoute)
 
 
 // const PORT = process.env.PORT || 3000;

@@ -112,7 +112,7 @@ router.post('/login', loginLimiter, sanitizeInput, validateLoginInput, async (re
       permissions: user.permissions
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
 
     res.json({
       success: true,

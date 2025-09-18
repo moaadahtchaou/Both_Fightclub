@@ -296,7 +296,7 @@ const Layout = ({ children }: LayoutProps) => {
           
           <div className="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} Fight Club 01 — Transformice Tribe. All rights reserved.
+              © {new Date().getFullYear()} Fight Club 01 — by AceAlgo.
             </p>
             <Link 
               to="/" 

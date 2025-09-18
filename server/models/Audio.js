@@ -13,7 +13,7 @@ const audioSchema = new mongoose.Schema({
   source: {
     type: String,
     required: true,
-    enum: ['youtube', 'direct_upload', 'url_import', 'other']
+    enum: ['youtube', 'instagram', 'facebook', 'direct_upload', 'url_import', 'other']
   },
   sourceUrl: {
     type: String,
@@ -23,6 +23,12 @@ const audioSchema = new mongoose.Schema({
     type: String,
     default: null,
     index: true // Index for faster duplicate detection
+  },
+  // Added for Instagram/Facebook deduplication
+  igfbvideoId: {
+    type: String,
+    default: null,
+    index: true // Index for IG/FB duplicate detection
   },
   sharedUsers: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -75,5 +81,8 @@ audioSchema.statics.findRecent = function(limit = 10) {
     .limit(limit)
     .populate('user', 'username');
 };
+
+// Compound index to speed up global IG/FB duplicate lookups
+audioSchema.index({ source: 1, igfbvideoId: 1 });
 
 module.exports = mongoose.model('Audio', audioSchema);

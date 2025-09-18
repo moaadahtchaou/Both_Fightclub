@@ -2,6 +2,7 @@ import { useState } from 'react';
 import YouTubeDownloader from '../components/tools/YouTubeDownloader';
 import MP3Uploader from '../components/tools/MP3Uploader';
 import AllinoneDownloadUpload from '../components/tools/AllinoneDownloadUpload';
+import InstagramAudioTool from '../components/tools/InstagramAudioTool';
 import {
   WrenchScrewdriverIcon,
   SparklesIcon,
@@ -41,6 +42,17 @@ const Tools = () => {
       gradient: "from-blue-500 to-cyan-500",
       bgGradient: "from-blue-500/10 to-cyan-500/10",
       borderGradient: "from-blue-500/30 to-cyan-500/30"
+    },
+    {
+      name: "Instagram Audio Extractor",
+      description: "Extract audio from Instagram Reels and upload directly to Catbox",
+      icon: MusicalNoteIcon,
+      category: "Media",
+      status: "Active",
+      component: "instagram",
+      gradient: "from-fuchsia-500 to-rose-500",
+      bgGradient: "from-fuchsia-500/10 to-rose-500/10",
+      borderGradient: "from-fuchsia-500/30 to-rose-500/30"
     },
     // {
     //   name: "YouTube MP3 Downloader",
@@ -229,6 +241,7 @@ const Tools = () => {
                 {selectedTool === 'allinone' && <AllinoneDownloadUpload />}
                 {selectedTool === 'downloader' && <YouTubeDownloader />}
                 {selectedTool === 'uploader' && <MP3Uploader />}
+                {selectedTool === 'instagram' && <InstagramAudioTool />}
               </div>
             </div>
           </section>
@@ -247,6 +260,7 @@ const Tools = () => {
               </div>
             </div>
             
+
             {/* Search Bar */}
             <div className="mb-6">
               <div className="relative">
@@ -423,63 +437,6 @@ const Tools = () => {
         </section>
         
         
-        {/* Tool Requests */}
-        <section className="mb-16">
-          <div className="card">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <span className="text-primary-400 mr-3">💡</span>
-              Request a Tool
-            </h2>
-            <p className="text-gray-400 mb-6">
-              Have an idea for a tool that would benefit the tribe? Let us know and we'll consider adding it to our toolkit.
-            </p>
-            
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Tool Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter tool name"
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Category
-                  </label>
-                  <select className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all">
-                    <option value="" disabled hidden>Select category</option>
-                    <option value="media">Media</option>
-                    <option value="gaming">Gaming</option>
-                    <option value="management">Management</option>
-                    <option value="analytics">Analytics</option>
-                    <option value="discord">Discord</option>
-                    <option value="design">Design</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Description
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Describe what this tool should do and how it would help the tribe..."
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
-                ></textarea>
-              </div>
-              
-              <button type="submit" className="btn-primary">
-                Submit Request
-              </button>
-            </form>
-          </div>
-        </section>
         
         {/* Development Roadmap */}
         <section className="mb-16">
