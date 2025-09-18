@@ -132,7 +132,6 @@ const InstagramAudioTool: React.FC<InstagramAudioToolProps> = ({ className = '' 
     setUrlValidationError('');
   };
 
-  const isValidUrl = igUrl && !urlValidationError && isValidInstagramUrl(igUrl).isValid;
 
   return (
     <div className={`relative rounded-3xl p-8 border border-white/10 shadow-2xl bg-gradient-to-br from-white/5 to-white/[0.03] backdrop-blur-xl ${className}`}>
