@@ -13,30 +13,119 @@ const router = express.Router();
 
 function checkYtDlp() {
   return new Promise((resolve) => {
-    // Prefer Python module invocation to avoid PATH issues
-    const py = spawn('py', ['-m', 'yt_dlp', '--version'], { stdio: 'ignore' });
-    let resolved = false;
-    py.on('close', (code) => {
-      if (!resolved && code === 0) {
-        resolved = true;
-        return resolve({ cmd: 'py', prefix: ['-m', 'yt_dlp'] });
+    let done = false;
+
+    const tryLocal = () => {
+      try {
+        const localBin = path.resolve(__dirname, '..', 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+        if (fs.existsSync(localBin)) {
+          const p = spawn(localBin, ['--version'], { stdio: 'ignore' });
+          p.on('close', (code) => {
+            if (done) return;
+            if (code === 0) {
+              done = true;
+              return resolve({ cmd: localBin, prefix: [] });
+            }
+            tryDirect();
+          });
+          p.on('error', () => {
+            if (done) return;
+            tryDirect();
+          });
+          return; // don't fall-through
+        }
+      } catch (_) { /* ignore and continue */ }
+      tryDirect();
+    };
+
+    const tryDirect = () => {
+      try {
+        const p = spawn('yt-dlp', ['--version'], { stdio: 'ignore' });
+        p.on('close', (code) => {
+          if (done) return;
+          if (code === 0) {
+            done = true;
+            return resolve({ cmd: 'yt-dlp', prefix: [] });
+          }
+          tryPython3();
+        });
+        p.on('error', () => {
+          if (done) return;
+          tryPython3();
+        });
+      } catch (_) {
+        tryPython3();
       }
-      if (!resolved) {
-        // Fallback to direct yt-dlp
-        const ytdlp = spawn('yt-dlp', ['--version'], { stdio: 'ignore' });
-        ytdlp.on('close', (code2) => {
-          if (code2 === 0) return resolve({ cmd: 'yt-dlp', prefix: [] });
+    };
+
+    const tryPython3 = () => {
+      try {
+        const p = spawn('python3', ['-m', 'yt_dlp', '--version'], { stdio: 'ignore' });
+        p.on('close', (code) => {
+          if (done) return;
+          if (code === 0) {
+            done = true;
+            return resolve({ cmd: 'python3', prefix: ['-m', 'yt_dlp'] });
+          }
+          tryPython();
+        });
+        p.on('error', () => {
+          if (done) return;
+          tryPython();
+        });
+      } catch (_) {
+        tryPython();
+      }
+    };
+
+    const tryPython = () => {
+      try {
+        const p = spawn('python', ['-m', 'yt_dlp', '--version'], { stdio: 'ignore' });
+        p.on('close', (code) => {
+          if (done) return;
+          if (code === 0) {
+            done = true;
+            return resolve({ cmd: 'python', prefix: ['-m', 'yt_dlp'] });
+          }
+          tryPy();
+        });
+        p.on('error', () => {
+          if (done) return;
+          tryPy();
+        });
+      } catch (_) {
+        tryPy();
+      }
+    };
+
+    // Windows Launcher
+    const tryPy = () => {
+      try {
+        const p = spawn('py', ['-m', 'yt_dlp', '--version'], { stdio: 'ignore' });
+        p.on('close', (code) => {
+          if (done) return;
+          if (code === 0) {
+            done = true;
+            return resolve({ cmd: 'py', prefix: ['-m', 'yt_dlp'] });
+          }
+          done = true; // all attempts failed
           return resolve(null);
         });
+        p.on('error', () => {
+          if (done) return;
+          done = true;
+          return resolve(null);
+        });
+      } catch (_) {
+        if (!done) {
+          done = true;
+          return resolve(null);
+        }
       }
-    });
-    py.on('error', () => {
-      const ytdlp = spawn('yt-dlp', ['--version'], { stdio: 'ignore' });
-      ytdlp.on('close', (code2) => {
-        if (code2 === 0) return resolve({ cmd: 'yt-dlp', prefix: [] });
-        return resolve(null);
-      });
-    });
+    };
+
+    // Start with local bundled binary if present
+    tryLocal();
   });
 }
 
