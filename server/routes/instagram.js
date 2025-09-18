@@ -11,31 +11,139 @@ const { verifyToken } = require('./auth');
 
 const router = express.Router();
 
+// Optional ffmpeg-static fallback
+let ffmpegCmd = 'ffmpeg';
+try {
+  const ffStatic = require('ffmpeg-static');
+  if (ffStatic && typeof ffStatic === 'string' && fs.existsSync(ffStatic)) {
+    ffmpegCmd = ffStatic;
+  }
+} catch (_) {
+  // ffmpeg-static not installed; will rely on system ffmpeg
+}
+
+// Keep a single-flight promise to avoid concurrent downloads
+let ytDlpDownloading = null;
+
+// Candidate local paths for yt-dlp binary (env override, bundled bin, tmp)
+const localBinCandidates = () => {
+  const exe = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+  const list = [];
+  if (process.env.YTDLP_BIN) list.push(process.env.YTDLP_BIN);
+  list.push(path.resolve(__dirname, '..', 'bin', exe));
+  list.push(path.join(os.tmpdir(), 'yt-dlp-bin', exe));
+  return list;
+};
+
+async function downloadYtDlpBinary() {
+  if (ytDlpDownloading) return ytDlpDownloading;
+
+  ytDlpDownloading = (async () => {
+    // If any existing candidate already works, use it
+    for (const pth of localBinCandidates()) {
+      try {
+        if (fs.existsSync(pth)) {
+          const ok = await new Promise((resolve) => {
+            const p = spawn(pth, ['--version'], { stdio: 'ignore' });
+            p.on('close', (code) => resolve(code === 0));
+            p.on('error', () => resolve(false));
+          });
+          if (ok) return pth;
+        }
+      } catch (_) {}
+    }
+
+    const base = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
+    const plat = process.platform;
+    const files = plat === 'win32'
+      ? ['yt-dlp.exe']
+      : plat === 'darwin'
+        ? ['yt-dlp_macos', 'yt-dlp']
+        : ['yt-dlp_linux', 'yt-dlp_musllinux', 'yt-dlp'];
+
+    // Choose a writable target path
+    let targetPath = null;
+    for (const pth of localBinCandidates()) {
+      const dir = path.dirname(pth);
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+        fs.accessSync(dir, fs.constants.W_OK);
+        targetPath = pth;
+        break;
+      } catch (_) {}
+    }
+    if (!targetPath) {
+      const exe = plat === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
+      const dir = path.join(os.tmpdir(), 'yt-dlp-bin');
+      try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
+      targetPath = path.join(dir, exe);
+    }
+
+    console.warn(`[yt-dlp] Auto-downloading binary to: ${targetPath}`);
+
+    let downloaded = false;
+    for (const f of files) {
+      const url = `${base}/${f}`;
+      try {
+        const resp = await axios.get(url, { responseType: 'stream', timeout: 120000 });
+        await new Promise((resolve, reject) => {
+          const ws = fs.createWriteStream(targetPath);
+          resp.data.pipe(ws);
+          resp.data.on('error', reject);
+          ws.on('finish', resolve);
+          ws.on('error', reject);
+        });
+        if (plat !== 'win32') {
+          try { fs.chmodSync(targetPath, 0o755); } catch (_) {}
+        }
+        downloaded = true;
+        break;
+      } catch (_) { /* try next file candidate */ }
+    }
+
+    if (!downloaded) return null;
+
+    // Verify
+    try {
+      const ok = await new Promise((resolve) => {
+        const p = spawn(targetPath, ['--version'], { stdio: 'ignore' });
+        p.on('close', (code) => resolve(code === 0));
+        p.on('error', () => resolve(false));
+      });
+      if (!ok) return null;
+    } catch (_) { return null; }
+
+    return targetPath;
+  })().finally(() => { ytDlpDownloading = null; });
+
+  return ytDlpDownloading;
+}
+
 function checkYtDlp() {
   return new Promise((resolve) => {
     let done = false;
 
     const tryLocal = () => {
-      try {
-        const localBin = path.resolve(__dirname, '..', 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
-        if (fs.existsSync(localBin)) {
-          const p = spawn(localBin, ['--version'], { stdio: 'ignore' });
+      const candidates = localBinCandidates();
+      const next = (i = 0) => {
+        if (done) return;
+        if (i >= candidates.length) return tryDirect();
+        const bin = candidates[i];
+        try {
+          if (!bin || !fs.existsSync(bin)) return next(i + 1);
+          const p = spawn(bin, ['--version'], { stdio: 'ignore' });
           p.on('close', (code) => {
             if (done) return;
             if (code === 0) {
               done = true;
-              return resolve({ cmd: localBin, prefix: [] });
+              return resolve({ cmd: bin, prefix: [] });
             }
-            tryDirect();
+            return next(i + 1);
           });
-          p.on('error', () => {
-            if (done) return;
-            tryDirect();
-          });
-          return; // don't fall-through
-        }
-      } catch (_) { /* ignore and continue */ }
-      tryDirect();
+          p.on('error', () => { if (!done) next(i + 1); });
+        } catch (_) { if (!done) next(i + 1); }
+      };
+      next();
     };
 
     const tryDirect = () => {
@@ -102,24 +210,44 @@ function checkYtDlp() {
     const tryPy = () => {
       try {
         const p = spawn('py', ['-m', 'yt_dlp', '--version'], { stdio: 'ignore' });
-        p.on('close', (code) => {
+        p.on('close', async (code) => {
           if (done) return;
           if (code === 0) {
             done = true;
             return resolve({ cmd: 'py', prefix: ['-m', 'yt_dlp'] });
           }
+          // Last resort: auto-download a static binary (for Render, etc.)
+          const dl = await downloadYtDlpBinary();
+          if (dl) {
+            done = true;
+            return resolve({ cmd: dl, prefix: [] });
+          }
           done = true; // all attempts failed
           return resolve(null);
         });
-        p.on('error', () => {
+        p.on('error', async () => {
           if (done) return;
+          const dl = await downloadYtDlpBinary();
+          if (dl) {
+            done = true;
+            return resolve({ cmd: dl, prefix: [] });
+          }
           done = true;
           return resolve(null);
         });
       } catch (_) {
         if (!done) {
-          done = true;
-          return resolve(null);
+          (async () => {
+            const dl = await downloadYtDlpBinary();
+            if (dl && !done) {
+              done = true;
+              return resolve({ cmd: dl, prefix: [] });
+            }
+            if (!done) {
+              done = true;
+              return resolve(null);
+            }
+          })();
         }
       }
     };
@@ -132,7 +260,7 @@ function checkYtDlp() {
 async function checkFFmpeg() {
   return new Promise((resolve) => {
     try {
-      const proc = spawn('ffmpeg', ['-version'], { stdio: 'ignore' });
+      const proc = spawn(ffmpegCmd, ['-version'], { stdio: 'ignore' });
       proc.on('close', (code) => resolve(code === 0));
       proc.on('error', () => resolve(false));
     } catch (_) {
@@ -251,7 +379,7 @@ async function uploadStreamToCatboxFromYt(yt, url, filename = 'audio.mp3', quali
         '-f', 'mp3',
         'pipe:1',
       ];
-      const ffmpeg = spawn('ffmpeg', ffArgs, { stdio: ['pipe', 'pipe', 'inherit'] });
+      const ffmpeg = spawn(ffmpegCmd, ffArgs, { stdio: ['pipe', 'pipe', 'inherit'] });
 
       ytdlp.stdout.pipe(ffmpeg.stdin);
 
