@@ -19,6 +19,8 @@ const cors = require('cors')
 const corsOptions = require('./config/corsOptions')
 
 app.use(cors(corsOptions))
+// Handle CORS preflight requests for all routes
+app.options('*', cors(corsOptions))
 // Increase payload size limits for file uploads
 app.use(express.json())
 app.use(express.urlencoded({ extended: true}))
