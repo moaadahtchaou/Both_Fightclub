@@ -7,6 +7,7 @@
  * - https://m.youtube.com/watch?v=VIDEO_ID
  * - https://www.youtube.com/embed/VIDEO_ID
  * - https://www.youtube.com/v/VIDEO_ID
+ * - https://www.youtube.com/shorts/VIDEO_ID
  */
 
 export interface YouTubeValidationResult {
@@ -42,6 +43,10 @@ export const validateYouTubeUrl = (url: string): YouTubeValidationResult => {
   const youtubePatterns = [
     // Standard YouTube URLs
     /^https?:\/\/(www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})(&.*)?$/,
+    // Shorts URLs
+    /^https?:\/\/(www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\/)?(\?.*)?$/,
+    /^https?:\/\/(m\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\/)?(\?.*)?$/,
+    /^(www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\/)?(\?.*)?$/,
     // Short YouTube URLs
     /^https?:\/\/(www\.)?youtu\.be\/([a-zA-Z0-9_-]{11})(\?.*)?$/,
     // Mobile YouTube URLs

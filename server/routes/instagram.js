@@ -269,12 +269,34 @@ async function checkFFmpeg() {
   });
 }
 
+// Add default UA and common yt-dlp flags for IG/FB
+const DEFAULT_UA = process.env.IGDL_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+function commonYtFlags(url) {
+  let referer = 'https://www.instagram.com/';
+  try { const u = new URL(url); referer = `${u.origin}/`; } catch (_) {}
+  const flags = [
+    '--user-agent', DEFAULT_UA,
+    '--add-header', `Referer:${referer}`,
+    '--geo-bypass',
+    '-4',
+    '--no-warnings',
+    '--no-playlist',
+    '--retry-sleep', '1',
+    '-R', '3',
+    '--fragment-retries', '3',
+  ];
+  if (process.env.IGDL_COOKIES) {
+    flags.push('--cookies', process.env.IGDL_COOKIES);
+  }
+  return flags;
+}
+
 async function getInfo(yt, url) {
   return new Promise((resolve) => {
-    const args = [...yt.prefix, '-J', '--no-warnings', url];
+    const args = [...yt.prefix, '-J', ...commonYtFlags(url), url];
     const proc = spawn(yt.cmd, args, { encoding: 'utf8' });
     let out = '';
-    proc.stdout.on('data', (d) => (out += d.toString()));
+    proc.stdout.on('data', (d) => (out += d.toString()))
     proc.on('close', () => {
       try {
         const info = JSON.parse(out || '{}');
@@ -301,7 +323,8 @@ async function downloadToTemp(yt, url, format = 'mp3', quality = '192') {
 
   const args = [
     ...yt.prefix,
-    '-f', 'best[ext=mp4]',
+    ...commonYtFlags(url),
+    '-f', 'bestaudio/best',
     '-x',
     '--audio-format', format,
     '--audio-quality', q,
@@ -361,14 +384,16 @@ async function uploadStreamToCatboxFromYt(yt, url, filename = 'audio.mp3', quali
 
       const ytdlpArgs = [
         ...yt.prefix,
+        ...commonYtFlags(url),
         '-f', 'bestaudio/best',
         '-o', '-',
         '--no-part',
         '--no-progress',
         url,
       ];
-      const ytdlp = spawn(yt.cmd, ytdlpArgs, { stdio: ['ignore', 'pipe', 'inherit'] });
-
+      const ytdlp = spawn(yt.cmd, ytdlpArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+      let ytdlpErr = '';
+      ytdlp.stderr.on('data', (d) => { ytdlpErr += d.toString(); });
       const ffArgs = [
         '-hide_banner',
         '-loglevel', 'error',
@@ -379,10 +404,10 @@ async function uploadStreamToCatboxFromYt(yt, url, filename = 'audio.mp3', quali
         '-f', 'mp3',
         'pipe:1',
       ];
-      const ffmpeg = spawn(ffmpegCmd, ffArgs, { stdio: ['pipe', 'pipe', 'inherit'] });
-
+      const ffmpeg = spawn(ffmpegCmd, ffArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
+      let ffErr = '';
+      ffmpeg.stderr.on('data', (d) => { ffErr += d.toString(); });
       ytdlp.stdout.pipe(ffmpeg.stdin);
-
       const form = new FormData();
       form.append('reqtype', 'fileupload');
       form.append('fileToUpload', ffmpeg.stdout, { filename, contentType: 'audio/mpeg' });
@@ -429,7 +454,8 @@ async function uploadStreamToCatboxFromYt(yt, url, filename = 'audio.mp3', quali
           settled = true;
           clearTimeout(timeout);
           cleanup();
-          reject(new Error(`yt-dlp exited with code ${code}`));
+          const tail = (ytdlpErr || '').slice(-600);
+          reject(new Error(`yt-dlp exited with code ${code}${tail ? `: ${tail}` : ''}`));
         }
       });
       ffmpeg.on('close', (code) => {
@@ -437,7 +463,8 @@ async function uploadStreamToCatboxFromYt(yt, url, filename = 'audio.mp3', quali
           settled = true;
           clearTimeout(timeout);
           cleanup();
-          reject(new Error(`ffmpeg exited with code ${code}`));
+          const tail = (ffErr || '').slice(-600);
+          reject(new Error(`ffmpeg exited with code ${code}${tail ? `: ${tail}` : ''}`));
         }
       });
     } catch (err) {
@@ -584,7 +611,18 @@ router.get('/download-and-upload', verifyToken, async (req, res) => {
     try {
       catboxUrl = await uploadStreamToCatboxFromYt(yt, url, safeName, '192');
     } catch (e) {
-      return res.status(502).json({ error: 'Failed to upload to Catbox', code: 'UPLOAD_FAILED', details: e.message });
+      // Fallback to temp-file download, then upload
+      const dl = await downloadToTemp(yt, url, 'mp3', '192');
+      if (!dl.ok) {
+        return res.status(502).json({ error: 'yt-dlp failed', code: 'YTDLP_FAILED', details: dl.error || e.message });
+      }
+      try {
+        catboxUrl = await uploadFileToCatbox(dl.filePath, safeName);
+      } catch (e2) {
+        try { fs.rmSync(dl.tempDir, { recursive: true, force: true }); } catch (_) {}
+        return res.status(502).json({ error: 'Failed to upload to Catbox', code: 'UPLOAD_FAILED', details: e2.message });
+      }
+      try { fs.rmSync(dl.tempDir, { recursive: true, force: true }); } catch (_) {}
     }
 
     // Deduct credit and save record
