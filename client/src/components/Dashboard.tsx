@@ -204,6 +204,8 @@ const Dashboard: React.FC = () => {
     switch (source) {
       case 'youtube':
         return { icon: '🎥', color: 'text-red-400', bg: 'bg-red-900/20' };
+      case 'cnvmp3':
+        return { icon: '🎥', color: 'text-red-400', bg: 'bg-red-900/20' };
       case 'direct_upload':
         return { icon: '📁', color: 'text-blue-400', bg: 'bg-blue-900/20' };
       case 'url_import':
@@ -441,6 +443,7 @@ const Dashboard: React.FC = () => {
               >
                 <option value="all">All Sources</option>
                 <option value="youtube">🎥 YouTube</option>
+                <option value="cnvmp3">🎥 cnvmp3</option>
                 <option value="direct_upload">📁 Direct Upload</option>
                 <option value="url_import">🔗 URL Import</option>
                 <option value="other">📄 Other</option>

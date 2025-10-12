@@ -35,6 +35,8 @@ export const API_ENDPOINTS = {
   UPLOAD: '/upload',
   ALLINONE: '/allinone/download-and-upload',
   INSTAGRAM: '/instagram/download-and-upload',
+  CNVMP3: '/cnvmp3/download-and-upload',
+  
 } as const;
 
 // Helper function to build full API URLs

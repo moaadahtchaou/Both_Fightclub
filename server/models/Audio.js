@@ -13,7 +13,7 @@ const audioSchema = new mongoose.Schema({
   source: {
     type: String,
     required: true,
-    enum: ['youtube', 'instagram', 'facebook', 'direct_upload', 'url_import', 'other']
+    enum: ['youtube', 'instagram', 'facebook', 'direct_upload', 'url_import', 'cnvmp3', 'other']
   },
   sourceUrl: {
     type: String,

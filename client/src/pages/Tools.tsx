@@ -3,6 +3,7 @@ import YouTubeDownloader from '../components/tools/YouTubeDownloader';
 import MP3Uploader from '../components/tools/MP3Uploader';
 import AllinoneDownloadUpload from '../components/tools/AllinoneDownloadUpload';
 import InstagramAudioTool from '../components/tools/InstagramAudioTool';
+import CnvMp3Tool from '../components/tools/CnvMp3Tool';
 import {
   WrenchScrewdriverIcon,
   SparklesIcon,
@@ -32,6 +33,17 @@ const Tools = () => {
 
 
   const tools = [
+        {
+      name: "CnvMp3 Tool",
+      description: "Download YouTube videos as MP3 using the cnvmp3.com API with direct Catbox upload",
+      icon: MusicalNoteIcon,
+      category: "Media",
+      status: "Active",
+      component: "cnvmp3",
+      gradient: "from-purple-500 to-indigo-500",
+      bgGradient: "from-purple-500/10 to-indigo-500/10",
+      borderGradient: "from-purple-500/30 to-indigo-500/30"
+    },
     {
       name: "All-in-One: Download & Upload",
       description: "Download from YouTube and upload directly to Catbox in one seamless workflow",
@@ -43,12 +55,13 @@ const Tools = () => {
       bgGradient: "from-blue-500/10 to-cyan-500/10",
       borderGradient: "from-blue-500/30 to-cyan-500/30"
     },
+
     {
       name: "Instagram Audio Extractor",
       description: "Extract audio from Instagram Reels and upload directly to Catbox",
       icon: MusicalNoteIcon,
       category: "Media",
-      status: "Active",
+      status: "Coming Soon",
       component: "instagram",
       gradient: "from-fuchsia-500 to-rose-500",
       bgGradient: "from-fuchsia-500/10 to-rose-500/10",
@@ -239,6 +252,7 @@ const Tools = () => {
               
               <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
                 {selectedTool === 'allinone' && <AllinoneDownloadUpload />}
+                {selectedTool === 'cnvmp3' && <CnvMp3Tool />}
                 {selectedTool === 'downloader' && <YouTubeDownloader />}
                 {selectedTool === 'uploader' && <MP3Uploader />}
                 {selectedTool === 'instagram' && <InstagramAudioTool />}
