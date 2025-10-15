@@ -1,7 +1,7 @@
 const { Audio } = require('../models');
 const User = require('../models/User');
 const { extractVideoId, cleanYouTubeUrl } = require('../utils/youtubeUtils');
-const { downloadAndUploadWithCnvMp3 } = require('../services/cnvmp3Service');
+const { downloadAndUploadWithCnvMp3Database } = require('../services/cnvmp3DatabaseService');
 
 /**
  * Main controller for handling cnvmp3 download and upload workflow
@@ -96,7 +96,7 @@ async function cnvmp3DownloadAndUpload(req, res) {
     });
     
     // Perform download and upload with cnvmp3
-    const downloadPromise = downloadAndUploadWithCnvMp3(cleanUrl);
+    const downloadPromise = downloadAndUploadWithCnvMp3Database(cleanUrl);
     
     const result = await Promise.race([downloadPromise, timeoutPromise]);
     
@@ -197,7 +197,7 @@ async function testCnvmp3NoAuth(req, res) {
     console.log(`🧪 Testing cnvmp3 for video ID: ${videoId}`);
     
     const cleanUrl = cleanYouTubeUrl(url);
-    const result = await downloadAndUploadWithCnvMp3(cleanUrl);
+    const result = await downloadAndUploadWithCnvMp3Database(cleanUrl);
     
     res.json({
       success: true,
