@@ -2,13 +2,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useRef, useEffect } from 'react';
 import { UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
-import logo from '../assets/logo.png';
+
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => {
+  const logoSrc = "/logo1.png";
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -56,17 +57,17 @@ const Layout = ({ children }: LayoutProps) => {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary-400/20 to-primary-600/20 rounded-xl blur-sm group-hover:blur-md transition-all duration-300"></div>
                 <img 
-                  src={logo} 
-                  alt="Fight Club 01 Logo" 
+                  src={logoSrc} 
+                  alt="The Freeborn Logo" 
                   className="relative h-12 w-12 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary-500/25"
                 />
               </div>
               <div className="flex items-center space-x-1">
                 <span className="text-3xl font-display font-black bg-gradient-to-r from-primary-400 via-primary-300 to-primary-500 bg-clip-text text-transparent group-hover:from-primary-300 group-hover:via-primary-200 group-hover:to-primary-400 transition-all duration-300">
-                  FC
+                  THE
                 </span>
                 <span className="text-3xl font-display font-black bg-gradient-to-r from-white via-gray-100 to-gray-200 bg-clip-text text-transparent group-hover:from-gray-100 group-hover:via-white group-hover:to-gray-100 transition-all duration-300">
-                  01
+                  FREEBORN
                 </span>
               </div>
               <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary-400/50 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
@@ -251,8 +252,8 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <img src={logo} alt="Fight Club 01" className="h-8 w-8 rounded" />
-                <span className="text-xl font-display font-bold text-white">Fight Club 01</span>
+                <img src={logoSrc} alt="The Freeborn" className="h-8 w-8 rounded" />
+                <span className="text-xl font-display font-bold text-white">The Freeborn</span>
               </div>
               <p className="text-gray-400 max-w-md">
                 The premier Transformice tribe focused on teamwork, events, and community. 
@@ -296,7 +297,7 @@ const Layout = ({ children }: LayoutProps) => {
           
           <div className="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} Fight Club 01 — by AceAlgo.
+              © {new Date().getFullYear()} The Freeborn — by AceAlgo.
             </p>
             <Link 
               to="/" 

@@ -6,7 +6,7 @@ const About = () => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="section-title">About Fight Club 01</h1>
+          <h1 className="section-title">About The Freeborn</h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
             Discover the story behind one of Transformice's most dedicated and successful tribes.
           </p>
@@ -22,9 +22,9 @@ const About = () => {
             </h2>
             <div className="prose prose-invert max-w-none">
               <p className="text-gray-300 leading-relaxed mb-4">
-                Fight Club 01 was founded in the underground chambers of Transformice, where the most 
+                The Freeborn was founded in the underground chambers of Transformice, where the most 
                 dedicated players gathered to push the boundaries of what was possible. Inspired by the 
-                legendary Fight Club philosophy, we believe that through challenge and community, 
+                legendary Freeborn philosophy, we believe that through challenge and community, 
                 we become our strongest selves.
               </p>
               <p className="text-gray-300 leading-relaxed">
@@ -112,7 +112,7 @@ const About = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-white">Tyler</h3>
                   <p className="text-primary-400 font-medium">Tribe Leader</p>
-                  <p className="text-gray-400 text-sm">Founder and visionary behind Fight Club 01</p>
+                  <p className="text-gray-400 text-sm">Founder and visionary behind The Freeborn</p>
                 </div>
               </div>
               <div className="flex items-center space-x-4 p-4 bg-gray-700/30 rounded-lg">
@@ -130,14 +130,14 @@ const About = () => {
           
           {/* Join CTA */}
           <section className="text-center py-12">
-            <h2 className="text-3xl font-bold text-white mb-4">Ready to Join the Underground?</h2>
+            <h2 className="text-3xl font-bold text-white mb-4">Ready to Join The Freeborn?</h2>
             <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-              Become part of something bigger. Join Fight Club 01 and discover what it means 
+              Become part of something bigger. Join The Freeborn and discover what it means 
               to be part of a true Transformice family.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/join" className="btn-primary">
-                Join Our Tribe
+                Join The Freeborn
               </Link>
               <Link to="/rules" className="btn-secondary">
                 Read Our Rules

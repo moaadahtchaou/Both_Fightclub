@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import logo from '../assets/logo.png';
 
 const Home = () => {
   return (
@@ -17,8 +16,8 @@ const Home = () => {
           {/* Logo */}
           <div className="mb-8 animate-fade-in">
             <img 
-              src={logo} 
-              alt="Fight Club 01 Logo" 
+              src="/logo1.png" 
+              alt="The Freeborn Logo" 
               className="h-24 w-24 md:h-32 md:w-32 mx-auto rounded-2xl shadow-2xl shadow-primary-600/20"
             />
           </div>
@@ -27,15 +26,11 @@ const Home = () => {
           <div className="mb-6 animate-slide-up">
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-black mb-4">
               <span className="bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 bg-clip-text text-transparent">
-                FIGHT
+                THE
               </span>
               <br />
               <span className="text-white">
-                CLUB
-              </span>
-              <br />
-              <span className="text-primary-400 text-5xl md:text-7xl lg:text-8xl">
-                01
+                FREEBORN
               </span>
             </h1>
           </div>
@@ -86,7 +81,7 @@ const Home = () => {
           <div className="text-center mb-16">
             <h2 className="section-title">What We're About</h2>
             <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-              Fight Club 01 is more than just a Transformice tribe. We're a community of dedicated players 
+              The Freeborn is more than just a Transformice tribe. We're a community of dedicated players 
               who believe in teamwork, skill development, and having fun together.
             </p>
           </div>

@@ -10,7 +10,7 @@ const Members = () => {
   ];
 
   // Real members data parsed from the members.txt file
-  const membersData = [
+  const rawMembersData = [
     { name: 'Aaoozza #0000', rank: 'Battleborn', joinDate: '24/12/2023 22:37' },
     { name: 'Abdo #3374', rank: 'Battleborn', joinDate: '23/10/2023 22:04' },
     { name: 'Ada #0303', rank: 'Battleborn', joinDate: '05/03/2024 01:13' },
@@ -35,13 +35,14 @@ const Members = () => {
     { name: 'Babygurl #6265', rank: 'Iron sentinels', joinDate: '17/11/2024 02:30' },
     { name: 'Barsetohnik #0000', rank: 'volley-players-B', joinDate: '06/06/2025 20:15' },
     { name: 'Basda #3161', rank: 'Iron sentinels', joinDate: '12/07/2025 15:39' },
+    { name: 'Ramasevosaff #0000', rank: 'Ramen', joinDate: '26/07/2025 23:19' },
     { name: 'Beautydoha #0000', rank: 'Apex hunters', joinDate: '30/05/2024 17:01' },
+    { name: 'Bunny #9332', rank: 'Amine ZBI Raghib', joinDate: '08/08/2025 03:01' },
     { name: 'Bibi #8389', rank: 'volley-players-S', joinDate: '08/07/2025 23:18' },
     { name: 'Bingo #9580', rank: 'Whisper killers', joinDate: '22/09/2023 22:36' },
     { name: 'Blackmice #3370', rank: 'Battleborn', joinDate: '23/12/2023 21:34' },
     { name: 'Bmz #9943', rank: 'volley-players-SS', joinDate: '30/05/2025 21:03' },
     { name: 'Bojje #2327', rank: 'Elite Assassins', joinDate: '09/06/2025 21:14' },
-    { name: 'Bunny #9332', rank: 'Amine ZBI Raghib', joinDate: '08/08/2025 03:01' },
     { name: 'Caffy #1229', rank: 'Mythwalker', joinDate: '20/07/2025 03:43' },
     { name: 'Christianix #0000', rank: 'volley-players-B', joinDate: '04/07/2025 19:37' },
     { name: 'Chris_cc #4551', rank: 'Storm Fighters', joinDate: '01/02/2025 17:13' },
@@ -221,6 +222,20 @@ const Members = () => {
     { name: 'Zanag3 #6464', rank: 'Battleborn', joinDate: '15/07/2025 15:50' }
   ];
 
+  // Limit to the three specified members and deduplicate by name
+  const allowedNames = new Set([
+    'Ramasevosaff #0000',
+    'Beautydoha #0000',
+    'Bunny #9332',
+  ]);
+  const membersData = Array.from(
+    new Map(
+      rawMembersData
+        .filter((m) => allowedNames.has(m.name))
+        .map((m) => [m.name, m])
+    ).values()
+  );
+
   // Group members by rank
   const membersByRank = membersData.reduce((acc, member) => {
     if (!acc[member.rank]) {
@@ -262,8 +277,10 @@ const Members = () => {
   };
 
   const MemberCard = ({ member }: { member: any }) => {
-    const username = member.name.split(' #')[0];
-    const discriminator = member.name.includes('#') ? '#' + member.name.split('#')[1] : '';
+    const normalized = member.name.replace(' #', '#');
+    const [usernamePart, tagPart] = normalized.split('#');
+    const username = usernamePart.trim();
+    const discriminator = tagPart ? '#' + tagPart.trim() : '';
     const initials = username.substring(0, 2).toUpperCase();
     
     return (
@@ -297,7 +314,7 @@ const Members = () => {
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-red-400 to-orange-500 bg-clip-text text-transparent">
-            TFM Members
+            The Freeborn Members
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             Meet our community of {membersData.length} dedicated players across {Object.keys(membersByRank).length} different ranks. Each member has earned their place through skill, dedication, and teamwork.

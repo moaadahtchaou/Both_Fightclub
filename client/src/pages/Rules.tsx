@@ -2,51 +2,51 @@ const Rules = () => {
   const rules = [
     {
       number: "01",
-      title: "The First Rule of Fight Club",
-      description: "You Do Not Talk About Fight Club.",
-      explanation: "What happens in our tribe rooms stays in our tribe rooms. Respect the privacy and trust of your fellow members."
+      title: "Honor The Freeborn",
+      description: "Represent The Freeborn with respect, humility, and sportsmanship.",
+      explanation: "Your words and actions reflect the tribe—be kind, fair, and constructive in-game and in chat."
     },
     {
       number: "02",
-      title: "The Second Rule of Fight Club",
-      description: "You Do NOT Talk About Fight Club!",
-      explanation: "This bears repeating. Discretion and loyalty are the foundations of our brotherhood."
+      title: "Respect and Privacy",
+      description: "Respect teammates’ privacy and personal boundaries.",
+      explanation: "Do not share screenshots, DMs, or personal info without consent. Tribe rooms are confidential."
     },
     {
       number: "03",
-      title: "Respect and Fair Play",
-      description: "If Someone Says 'Stop' Or Goes Limp, Taps Out, The Fight Is Over.",
-      explanation: "Always respect other players' boundaries. No harassment, bullying, or toxic behavior will be tolerated."
+      title: "Play Fair",
+      description: "Compete clean—no cheating, exploiting, or griefing.",
+      explanation: "Report bugs and avoid toxic gameplay. We win with skill, preparation, and teamwork."
     },
     {
       number: "04",
-      title: "One-on-One Conflicts",
-      description: "Only Two Guys To A Fight.",
-      explanation: "Handle disputes privately and maturely. Don't drag the entire tribe into personal conflicts."
+      title: "Communicate Clearly",
+      description: "Keep comms clear, calm, and helpful during events.",
+      explanation: "Use concise callouts; avoid spam and backseat-leading. Default to agreed comms language."
     },
     {
       number: "05",
-      title: "Focus and Dedication",
-      description: "One Fight At A Time.",
-      explanation: "When participating in tribe events, give your full attention and effort. Quality over quantity."
+      title: "Show Up",
+      description: "Participate consistently in tribe activities.",
+      explanation: "Join at least one tribe event per week. If inactive for 7+ days, notify leadership."
     },
     {
       number: "06",
-      title: "Come As You Are",
-      description: "No Shirts, No Shoes.",
-      explanation: "Be authentic. We value genuine members over those who put on facades. Honesty builds trust."
+      title: "Help Others Improve",
+      description: "Mentor newer members with patience and positivity.",
+      explanation: "Share tips, builds, and map strategies. Celebrate learning; don’t shame mistakes."
     },
     {
       number: "07",
-      title: "Commitment and Perseverance",
-      description: "Fights Will Go On As Long As They Have To.",
-      explanation: "Don't give up easily. Whether it's mastering a difficult map or supporting a struggling member, we see things through."
+      title: "Resolve Conflicts Privately",
+      description: "DM first; escalate respectfully when needed.",
+      explanation: "Handle disputes one-on-one before involving officers. Keep public chat drama-free."
     },
     {
       number: "08",
-      title: "Initiation and Participation",
-      description: "If This Is Your First Night At Fight Club, You Have To Fight.",
-      explanation: "New members are expected to actively participate in tribe activities. Engagement is key to becoming part of our community."
+      title: "Growth Mindset",
+      description: "Learn, practice, and repeat—own your progress.",
+      explanation: "Review runs, practice mechanics, and give positive feedback. Team wins over ego."
     }
   ];
 
@@ -55,10 +55,10 @@ const Rules = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="section-title">The Sacred Rules</h1>
+          <h1 className="section-title">The Freeborn Code</h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
             These are the fundamental principles that guide our tribe. Every member must understand 
-            and respect these rules to maintain the integrity of Fight Club 01.
+            and respect these rules to maintain the integrity of The Freeborn.
           </p>
         </div>
         
@@ -167,7 +167,7 @@ const Rules = () => {
         <section className="text-center py-12 border-t border-gray-700">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to Commit?</h2>
           <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-            By joining Fight Club 01, you agree to uphold these rules and contribute positively 
+            By joining The Freeborn, you agree to uphold these rules and contribute positively 
             to our community. Are you ready to become part of the underground?
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

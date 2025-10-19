@@ -205,7 +205,7 @@ const Tools = () => {
               Tribe Tools
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-8 leading-relaxed">
-              Exclusive tools and utilities designed to enhance your <span className="text-blue-400 font-semibold">Fight Club 01</span> experience. 
+              Exclusive tools and utilities designed to enhance your <span className="text-blue-400 font-semibold">The Freeborn</span> experience. 
               From media conversion to gaming utilities, we've got everything you need.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
