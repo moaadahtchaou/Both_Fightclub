@@ -19,7 +19,7 @@ interface AudioFile {
     username: string;
   };
   originalName: string;
-  source: 'youtube' | 'direct_upload' | 'url_import' | 'other';
+  source: 'youtube' | 'cnvmp3' | 'direct_upload' | 'url_import' | 'other';
   sourceUrl?: string;
   uploadUrl: string;
   ipAddress: string;
@@ -703,6 +703,7 @@ const Dashboard: React.FC = () => {
               ) : (
                 getFilteredAndSortedAudioFiles(userAudioFiles).map((audioFile) => {
                   const sourceInfo = getSourceInfo(audioFile.source);
+                  const isOwner = !!user && !!audioFile.user && audioFile.user._id === user.id;
                   return (
                     <div key={audioFile._id} className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-sm p-5 rounded-xl border border-gray-700/50 hover:border-gray-600/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10">
                       <div className="flex items-start justify-between">
@@ -810,7 +811,7 @@ const Dashboard: React.FC = () => {
                         
                         <div className="flex flex-col items-center space-y-2 ml-4">
                           {/* Show ownership indicator for shared files */}
-                          {user && audioFile.user._id !== user.id && (
+                          {user && audioFile.user && audioFile.user._id !== user.id && (
                             <div className="text-xs text-gray-500 text-center">
                               <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs">
                                 Shared by {audioFile.user.username}
@@ -820,19 +821,19 @@ const Dashboard: React.FC = () => {
                           
                           <button
                             onClick={() => togglePublicStatus(audioFile._id, audioFile.isPublic)}
-                            disabled={!user || audioFile.user._id !== user.id}
-                             className={`px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-md ${
-                                !user || audioFile.user._id !== user.id
-                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-gray-300/25'
-                                  : audioFile.isPublic
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25'
-                                  : 'bg-gray-600 hover:bg-gray-700 text-white shadow-gray-500/25'
-                              }`}
-                              title={
-                                !user || audioFile.user._id !== user.id
-                                  ? 'Only the original uploader can change public status'
-                                  : audioFile.isPublic ? 'Make Private' : 'Make Public'
-                              }
+                            disabled={!isOwner}
+                            className={`px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-md ${
+                              !isOwner
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-gray-300/25'
+                                : audioFile.isPublic
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25'
+                                : 'bg-gray-600 hover:bg-gray-700 text-white shadow-gray-500/25'
+                            }`}
+                            title={
+                              !isOwner
+                                ? 'Only the original uploader can change public status'
+                                : audioFile.isPublic ? 'Make Private' : 'Make Public'
+                            }
                           >
                             <div className="flex items-center space-x-1">
                               <span className="text-sm">{audioFile.isPublic ? '🌍' : '🔒'}</span>
