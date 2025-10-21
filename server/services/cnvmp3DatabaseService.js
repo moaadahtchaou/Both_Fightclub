@@ -22,7 +22,7 @@ async function checkCnvMp3Database(youtubeId) {
   const headers = {
     'Content-Type': 'application/json',
     'Origin': 'https://cnvmp3.com',
-    'Referer': 'https://cnvmp3.com/v38',
+    'Referer': 'https://cnvmp3.com/v39',
     'Connection': 'keep-alive',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
     'Accept': 'application/json, text/plain, */*',
