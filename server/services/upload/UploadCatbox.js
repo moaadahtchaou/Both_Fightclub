@@ -282,7 +282,7 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   if (args.length < 1) {
     console.error('Usage: node uploadToCatboxFromUrl.js <file_url> [--filename=name.ext] [--referer=...] [--ua=...] [--origin=...] [--header=Key=Value] [--userhash=YOUR_HASH] [--retries=1]');
-    console.error('Example: node uploadToCatboxFromUrl.js "https://example.com/song.mp3" --referer=https://cnvmp3.com/v42 --filename="mySong.mp3" --retries=2');
+    console.error('Example: node uploadToCatboxFromUrl.js "https://example.com/song.mp3" --referer=https://cnvmp3.com/v43 --filename="mySong.mp3" --retries=2');
     process.exit(1);
   }
 
